@@ -1,0 +1,152 @@
+class Course {
+  final int id;
+  final String title;
+  final String description;
+  final String? thumbnailUrl;
+  final double price;
+  final String type; // free, paid
+  final int? durationMinutes;
+  final String category;
+  final String level; // beginner, intermediate, advanced
+  final double? rating;
+  final bool featured;
+  final String status; // draft, published, archived
+  final int instructorId;
+  final String? instructorName;
+  final String? instructorAvatar;
+  final List<Video>? videos;
+  final int? studentCount;
+  final bool? isSubscribed;
+  final double? progressPercentage;
+  final DateTime createdAt;
+
+  Course({
+    required this.id,
+    required this.title,
+    required this.description,
+    this.thumbnailUrl,
+    required this.price,
+    required this.type,
+    this.durationMinutes,
+    required this.category,
+    required this.level,
+    this.rating,
+    required this.featured,
+    required this.status,
+    required this.instructorId,
+    this.instructorName,
+    this.instructorAvatar,
+    this.videos,
+    this.studentCount,
+    this.isSubscribed,
+    this.progressPercentage,
+    required this.createdAt,
+  });
+
+  factory Course.fromJson(Map<String, dynamic> json) {
+    return Course(
+      id: json['id'] as int,
+      title: json['title'] as String,
+      description: json['description'] as String,
+      thumbnailUrl: json['thumbnail_url'] as String?,
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      type: json['type'] as String? ?? 'free',
+      durationMinutes: json['duration_minutes'] as int?,
+      category: json['category'] as String? ?? '',
+      level: json['level'] as String? ?? 'beginner',
+      rating: (json['rating'] as num?)?.toDouble(),
+      featured: json['featured'] as bool? ?? false,
+      status: json['status'] as String? ?? 'draft',
+      instructorId: json['instructor_id'] as int,
+      instructorName: json['instructor']?['name'] as String?,
+      instructorAvatar: json['instructor']?['avatar_url'] as String?,
+      videos: (json['videos'] as List<dynamic>?)
+          ?.map((v) => Video.fromJson(v as Map<String, dynamic>))
+          .toList(),
+      studentCount: json['student_count'] as int?,
+      isSubscribed: json['is_subscribed'] as bool?,
+      progressPercentage:
+          (json['progress_percentage'] as num?)?.toDouble(),
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'thumbnail_url': thumbnailUrl,
+      'price': price,
+      'type': type,
+      'duration_minutes': durationMinutes,
+      'category': category,
+      'level': level,
+      'rating': rating,
+      'featured': featured,
+      'status': status,
+      'instructor_id': instructorId,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+
+  bool get isFree => type == 'free';
+  bool get isPaid => type == 'paid';
+  bool get isPublished => status == 'published';
+  String get difficultyLevel => level;
+}
+
+class Video {
+  final int id;
+  final int courseId;
+  final String title;
+  final String? description;
+  final String videoUrl;
+  final int durationSeconds;
+  final int order;
+  final String quality; // 480p, 720p, 1080p
+  final String? thumbnailUrl;
+  final String? materialUrl;
+  final String status;
+  final DateTime createdAt;
+
+  Video({
+    required this.id,
+    required this.courseId,
+    required this.title,
+    this.description,
+    required this.videoUrl,
+    required this.durationSeconds,
+    required this.order,
+    required this.quality,
+    this.thumbnailUrl,
+    this.materialUrl,
+    required this.status,
+    required this.createdAt,
+  });
+
+  factory Video.fromJson(Map<String, dynamic> json) {
+    return Video(
+      id: json['id'] as int,
+      courseId: json['course_id'] as int,
+      title: json['title'] as String,
+      description: json['description'] as String?,
+      videoUrl: json['video_url'] as String,
+      durationSeconds: json['duration_seconds'] as int,
+      order: json['order'] as int,
+      quality: json['quality'] as String? ?? '720p',
+      thumbnailUrl: json['thumbnail_url'] as String?,
+      materialUrl: json['material_url'] as String?,
+      status: json['status'] as String? ?? 'draft',
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+
+  String get durationFormatted {
+    final minutes = durationSeconds ~/ 60;
+    final seconds = durationSeconds % 60;
+    return '${minutes}m ${seconds}s';
+  }
+
+  String get durationMinutes => (durationSeconds ~/ 60).toString();
+}

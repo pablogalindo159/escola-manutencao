@@ -1,82 +1,22 @@
-# Node/npm
-node_modules/
-npm-debug.log
-package-lock.json
-yarn.lock
-
-# PHP/Composer
-vendor/
-composer.lock
-
-# Laravel
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/vendor
 .env
-.env.local
-.env.*.local
-storage/
-bootstrap/cache/
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-
-# IDE
-.vscode/
+.env.backup
+.phpunit.result.cache
+docker-compose.override.yml
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+.DS_Store
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
-*.sublime-project
-*.sublime-workspace
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-logs/
-
-# Temp
-tmp/
-temp/
-.tmp
-
-# Build
-dist/
-build/
-out/
-
-# App Flutter
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-pubspec.lock
-.packages
-
-# Android
-android/.gradle
-android/local.properties
-
-# iOS
-ios/Flutter/Flutter.podspec
-ios/Flutter/Flutter.framework
-ios/Flutter/Flutter.xcframework
-
-# Secrets
-.env*
-!.env.example
-firebase-config.json
-google-services.json
-GoogleService-Info.plist
-
-# Database
-*.sqlite
-*.sqlite3
-*.db
-
-# IDE files
-.vscode/
-.idea/
-.DS_Store
+.env.local
+.env.*.local
+composer.lock

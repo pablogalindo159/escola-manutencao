@@ -1,0 +1,131 @@
+name: escola_manutencao
+description: "App de cursos de manutenção - Escola da Manutenção"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 🔐 Autenticação & Segurança
+  flutter_secure_storage: ^9.0.0
+  jwt_decoder: ^2.0.1
+
+  # 🌐 API & Requisições
+  http: ^1.1.0
+  dio: ^5.3.0
+  connectivity_plus: ^5.0.0
+
+  # 📊 State Management
+  provider: ^6.0.0
+  riverpod: ^2.4.0
+
+  # 🗄️ Banco de Dados Local
+  sqflite: ^2.3.0
+  path: ^1.8.0
+  hive: ^2.2.0
+  hive_flutter: ^1.1.0
+
+  # 💳 Pagamentos
+  mercado_pago_mobile: ^2.0.0
+
+  # 📱 UI & Design
+  flutter_svg: ^2.0.0
+  google_fonts: ^6.1.0
+  animations: ^2.0.0
+  shimmer: ^3.0.0
+  cached_network_image: ^3.3.0
+
+  # 🔔 Notificações
+  firebase_core: ^2.24.0
+  firebase_messaging: ^14.6.0
+  flutter_local_notifications: ^16.1.0
+
+  # 📹 Vídeo
+  video_player: ^2.7.0
+  chewie: ^1.7.0
+
+  # 📸 Câmera & Galeria
+  image_picker: ^1.0.0
+  permission_handler: ^11.4.0
+
+  # 🗺️ Localização
+  geolocator: ^9.0.0
+
+  # 📅 Data & Hora
+  intl: ^0.19.0
+
+  # 🧪 QR Code
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^3.5.0
+
+  # 📊 Gráficos
+  fl_chart: ^0.63.0
+
+  # 🔄 Sincronização
+  sync_service: ^1.0.0
+
+  # 📝 Logging
+  logger: ^2.0.0
+
+  # 🌍 Internacionalização
+  easy_localization: ^3.0.0
+
+  # ⏰ Gerenciamento de Estado
+  get: ^4.6.0
+
+  # 📦 Utilitários
+  uuid: ^4.0.0
+  crypto: ^3.0.0
+  url_launcher: ^6.2.0
+  share_plus: ^7.2.0
+  flutter_dotenv: ^5.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.0
+  hive_generator: ^2.0.0
+
+flutter:
+  uses-material-design: true
+
+  # 🎨 Assets
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+    - .env
+
+  # 🎯 Fontes
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Light.ttf
+          weight: 300
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+
+  # ETAPA 4: Integrações
+  image_picker: ^1.0.0              # Upload de fotos com câmera
+  firebase_messaging: ^14.7.0         # Push notifications
+  mercado_pago_mobile_checkout: ^1.0.0  # Mercado Pago mobile
+  qr_flutter: ^4.0.0                 # QR Code generator
+  image_compression: ^1.0.0           # Compressão de imagens
+  flutter_local_notifications: ^15.0.0 # Notificações locais
+  path_provider: ^2.1.0               # Acesso ao filesystem
+  share_plus: ^7.2.0                  # Compartilhar arquivos
