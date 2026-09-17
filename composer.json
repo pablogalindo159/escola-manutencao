@@ -30,8 +30,7 @@
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.26",
         "mockery/mockery": "^1.6",
-        "phpunit/phpunit": "^10.5",
-        "laravel/dusk": "^7.11"
+        "phpunit/phpunit": "^10.5"
     },
     "autoload": {
         "psr-4": {
