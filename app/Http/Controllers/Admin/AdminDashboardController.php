@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Course;
 use App\Models\Payment;
+use App\Models\Subscription;
 use App\Models\Repair;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -21,10 +22,10 @@ class AdminDashboardController extends Controller
         $metrics = [
             'total_users' => User::count(),
             'total_courses' => Course::count(),
-            'active_subscriptions' => Payment::where('status', 'completed')
+            'active_subscriptions' => Subscription::where('status', 'active')
                 ->where('expires_at', '>', now())
                 ->count(),
-            'total_revenue' => Payment::where('status', 'completed')
+            'total_revenue' => Payment::where('status', 'approved')
                 ->sum('amount'),
             'completion_rate' => $this->getCompletionRate(),
             'active_students' => User::where('last_login_at', '>', now()->subDays(7))->count(),
@@ -41,15 +42,16 @@ class AdminDashboardController extends Controller
 
         // Últimas transações
         $recent_payments = Payment::with('user')
-            ->where('status', 'completed')
+            ->where('status', 'approved')
             ->orderByDesc('created_at')
             ->take(10)
             ->get();
 
         // Receita por método de pagamento
-        $revenue_by_method = Payment::where('status', 'completed')
-            ->groupBy('payment_method')
-            ->select('payment_method', DB::raw('SUM(amount) as total'))
+        $revenue_by_method = Payment::where('status', 'approved')
+            ->whereNotNull('method')
+            ->groupBy('method')
+            ->select('method', DB::raw('SUM(amount) as total'))
             ->get();
 
         // Taxa de retenção

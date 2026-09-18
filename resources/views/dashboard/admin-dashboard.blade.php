@@ -86,7 +86,7 @@
                         <div>
                             <div class="flex justify-between mb-2">
                                 <span class="text-sm font-medium text-gray-700">
-                                    @switch($method->payment_method)
+                                    @switch($method->method)
                                         @case('pix')
                                             PIX
                                         @break
@@ -97,7 +97,7 @@
                                             Boleto
                                         @break
                                         @default
-                                            {{ $method->payment_method }}
+                                            {{ $method->method }}
                                     @endswitch
                                 </span>
                                 <span class="text-sm font-semibold text-gray-900">
