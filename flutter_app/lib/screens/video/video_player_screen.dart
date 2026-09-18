@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
-import 'package:chewie/chewie.dart';
 import 'package:provider/provider.dart';
 import '../../providers/course_provider.dart';
 import '../../models/course_model.dart';
+import 'secure_video_player.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   final int courseId;
@@ -20,23 +19,21 @@ class VideoPlayerScreen extends StatefulWidget {
 }
 
 class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
-  late VideoPlayerController _videoPlayerController;
-  late ChewieController _chewieController;
   bool _isInitialized = false;
   String? _errorMessage;
+  Video? _video;
 
   @override
   void initState() {
     super.initState();
-    _initializePlayer();
+    _loadVideoInfo();
   }
 
-  Future<void> _initializePlayer() async {
+  Future<void> _loadVideoInfo() async {
     try {
       final courseProvider = context.read<CourseProvider>();
-      final video = await courseProvider.selectCourse(widget.courseId);
+      await courseProvider.selectCourse(widget.courseId);
 
-      // Encontrar o vídeo específico
       final videoData = courseProvider.selectedCourse?.videos
           ?.firstWhere((v) => v.id == widget.videoId);
 
@@ -47,36 +44,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         return;
       }
 
-      _videoPlayerController =
-          VideoPlayerController.network(videoData.videoUrl);
-
-      await _videoPlayerController.initialize();
-
-      _chewieController = ChewieController(
-        videoPlayerController: _videoPlayerController,
-        autoPlay: true,
-        looping: false,
-        fullScreenByDefault: false,
-        showOptions: true,
-        showControls: true,
-        allowFullScreen: true,
-        allowMuting: true,
-        progressIndicatorDelay: const Duration(milliseconds: 300),
-        materialProgressColors: ChewieProgressColors(
-          playedColor: const Color(0xFF0066FF),
-          handleColor: const Color(0xFF0066FF),
-          backgroundColor: Colors.grey[300]!,
-          bufferedColor: Colors.grey[100]!,
-        ),
-        startAt: const Duration(),
-      );
-
       setState(() {
+        _video = videoData;
         _isInitialized = true;
       });
-
-      // Atualizar progresso a cada 10 segundos
-      _videoPlayerController.addListener(_updateProgress);
     } catch (e) {
       setState(() {
         _errorMessage = 'Erro ao carregar vídeo: $e';
@@ -84,24 +55,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     }
   }
 
-  void _updateProgress() {
-    if (!_videoPlayerController.value.isInitialized) return;
-
-    final position = _videoPlayerController.value.position.inSeconds;
-    final duration = _videoPlayerController.value.duration.inSeconds;
-
-    // Enviar progresso para API a cada 10 segundos
-    if (position % 10 == 0) {
-      final courseProvider = context.read<CourseProvider>();
-      // TODO: Atualizar progresso via provider
-    }
-  }
-
   @override
   void dispose() {
-    _videoPlayerController.removeListener(_updateProgress);
-    _videoPlayerController.dispose();
-    _chewieController.dispose();
     super.dispose();
   }
 
@@ -161,11 +116,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Video Player
+            // Video Player (protegido, com token de curta duração)
             AspectRatio(
               aspectRatio: 16 / 9,
-              child: Chewie(
-                controller: _chewieController,
+              child: SecureVideoPlayer(
+                videoId: widget.videoId.toString(),
+                videoTitle: _video?.title ?? 'Aula',
               ),
             ),
 

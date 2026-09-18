@@ -11,6 +11,7 @@ import 'screens/home/home_screen.dart';
 import 'screens/home/course_detail_screen.dart';
 import 'screens/video/course_progress_screen.dart';
 import 'screens/video/video_player_screen.dart';
+import 'screens/video/live_stream_screen.dart';
 import 'screens/repairs/repairs_list_screen.dart';
 import 'screens/repairs/repair_detail_screen.dart';
 import 'screens/repairs/repair_form_screen.dart';
@@ -101,6 +102,10 @@ class MyApp extends StatelessWidget {
               courseId: args['courseId'] as int,
               videoId: args['videoId'] as int,
             );
+          },
+          '/live-stream': (context) {
+            final streamId = ModalRoute.of(context)!.settings.arguments as int;
+            return LiveStreamScreen(streamId: streamId);
           },
 
           '/repairs': (context) => const RepairsListScreen(),

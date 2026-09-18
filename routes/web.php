@@ -2,9 +2,12 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\LiveStreamController as AdminLiveStreamController;
+use App\Http\Controllers\Admin\VideoController as AdminVideoController;
 use App\Http\Controllers\Web\WebAuthController;
 use App\Http\Controllers\Web\CourseController;
 use App\Models\Course;
+use App\Models\LiveStream;
 
 Route::get('/', function () {
     $style_by_category = [
@@ -54,6 +57,10 @@ Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
 
 Route::get('/cursos/{course}', [CourseController::class, 'show'])->name('courses.detail');
 
+Route::get('/live-streams/{liveStream}', function (LiveStream $liveStream) {
+    return view('live-streams.show', ['stream' => $liveStream]);
+})->name('live-streams.show');
+
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
@@ -61,5 +68,25 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/cursos/{course}/editar', [AdminDashboardController::class, 'editCourse'])->name('admin.courses.edit');
     Route::put('/admin/cursos/{course}', [AdminDashboardController::class, 'updateCourse'])->name('admin.courses.update');
 
+    Route::prefix('admin/cursos/{course}/videos')->name('admin.videos.')->group(function () {
+        Route::get('/', [AdminVideoController::class, 'index'])->name('index');
+        Route::get('/novo', [AdminVideoController::class, 'create'])->name('create');
+        Route::post('/', [AdminVideoController::class, 'store'])->name('store');
+        Route::get('/{video}/editar', [AdminVideoController::class, 'edit'])->name('edit');
+        Route::put('/{video}', [AdminVideoController::class, 'update'])->name('update');
+        Route::delete('/{video}', [AdminVideoController::class, 'destroy'])->name('destroy');
+    });
+
     Route::get('/admin/pagamentos', [AdminDashboardController::class, 'payments'])->name('admin.payments');
+
+    Route::prefix('admin/live-streams')->name('admin.live-streams.')->group(function () {
+        Route::get('/', [AdminLiveStreamController::class, 'index'])->name('index');
+        Route::get('/create', [AdminLiveStreamController::class, 'create'])->name('create');
+        Route::post('/', [AdminLiveStreamController::class, 'store'])->name('store');
+        Route::get('/{liveStream}/edit', [AdminLiveStreamController::class, 'edit'])->name('edit');
+        Route::put('/{liveStream}', [AdminLiveStreamController::class, 'update'])->name('update');
+        Route::delete('/{liveStream}', [AdminLiveStreamController::class, 'destroy'])->name('destroy');
+        Route::post('/{liveStream}/start', [AdminLiveStreamController::class, 'start'])->name('start');
+        Route::post('/{liveStream}/end', [AdminLiveStreamController::class, 'end'])->name('end');
+    });
 });

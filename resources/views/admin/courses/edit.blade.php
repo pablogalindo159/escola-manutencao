@@ -5,7 +5,10 @@
     <div class="bg-white shadow-sm">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
             <h1 class="text-3xl font-bold text-gray-900">Editar Curso</h1>
-            <a href="{{ route('admin.courses') }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">← Voltar aos cursos</a>
+            <div class="flex items-center gap-4">
+                <a href="{{ route('admin.videos.index', $course) }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">🎬 Gerenciar Vídeos</a>
+                <a href="{{ route('admin.courses') }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">← Voltar aos cursos</a>
+            </div>
         </div>
     </div>
 

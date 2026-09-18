@@ -126,6 +126,31 @@ class AuthController extends Controller
     }
 
     /**
+     * Verificar quanto tempo falta pro token expirar
+     * GET /api/auth/token-status
+     */
+    public function tokenStatus(): JsonResponse
+    {
+        try {
+            $payload = auth('api')->payload();
+            $expiresAt = $payload->get('exp');
+            $secondsLeft = $expiresAt - now()->timestamp;
+
+            return response()->json([
+                'success' => true,
+                'expires_in' => max(0, $secondsLeft),
+                'expires_at' => \Carbon\Carbon::createFromTimestamp($expiresAt)->toIso8601String(),
+                'should_refresh' => $secondsLeft < 300,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao verificar token',
+            ], 500);
+        }
+    }
+
+    /**
      * Logout do usuário
      * POST /api/auth/logout
      */

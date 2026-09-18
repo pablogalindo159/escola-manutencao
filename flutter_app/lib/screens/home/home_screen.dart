@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/course_provider.dart';
 import '../../widgets/course_card.dart';
+import '../../services/api_service.dart';
+import 'live_stream_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -20,10 +22,27 @@ class _HomeScreenState extends State<HomeScreen> {
     'Impressoras',
   ];
 
+  final ApiService _apiService = ApiService();
+  Map<String, dynamic>? _liveStreamNow;
+
   @override
   void initState() {
     super.initState();
     _loadCourses();
+    _checkLiveStream();
+  }
+
+  Future<void> _checkLiveStream() async {
+    try {
+      final streams = await _apiService.getLiveStreamsNow();
+      if (streams.isNotEmpty && mounted) {
+        setState(() {
+          _liveStreamNow = streams.first as Map<String, dynamic>;
+        });
+      }
+    } catch (_) {
+      // Sem transmissão ao vivo agora, tudo bem
+    }
   }
 
   Future<void> _loadCourses() async {
@@ -103,6 +122,64 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+
+              // Banner de transmissão ao vivo (só aparece se houver uma agora)
+              if (_liveStreamNow != null)
+                InkWell(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => LiveStreamScreen(
+                          streamId: _liveStreamNow!['id'] as int,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDC2626),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'AO VIVO AGORA',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                _liveStreamNow!['title'] ?? '',
+                                style: const TextStyle(color: Colors.white, fontSize: 14),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.play_circle_outline, color: Colors.white),
+                      ],
+                    ),
+                  ),
+                ),
 
               // Categories
               SizedBox(

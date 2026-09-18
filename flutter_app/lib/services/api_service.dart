@@ -3,7 +3,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:8000/api';
+  // TODO: trocar para https://escoladamanutencao.com.br/api quando o domínio
+  // e o SSL estiverem configurados. Por enquanto aponta pro IP da VPS.
+  static const String baseUrl = 'http://198.199.64.162/api';
   
   late Dio _dio;
   final _storage = const FlutterSecureStorage();
@@ -578,6 +580,47 @@ class ApiService {
 
       if (response.statusCode == 201) {
         return response.data['data'];
+      }
+      throw Exception(response.data['message']);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // ==================== TRANSMISSÕES AO VIVO ====================
+
+  /// Transmissões ao vivo agora
+  Future<List<dynamic>> getLiveStreamsNow() async {
+    try {
+      final response = await _dio.get('/live-streams/live-now');
+      if (response.statusCode == 200) {
+        return response.data['data'] as List<dynamic>;
+      }
+      throw Exception(response.data['message']);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Próximas transmissões agendadas
+  Future<List<dynamic>> getUpcomingLiveStreams() async {
+    try {
+      final response = await _dio.get('/live-streams/upcoming');
+      if (response.statusCode == 200) {
+        return response.data['data'] as List<dynamic>;
+      }
+      throw Exception(response.data['message']);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Detalhes de uma transmissão
+  Future<Map<String, dynamic>> getLiveStream(int id) async {
+    try {
+      final response = await _dio.get('/live-streams/$id');
+      if (response.statusCode == 200) {
+        return response.data;
       }
       throw Exception(response.data['message']);
     } on DioException catch (e) {

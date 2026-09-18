@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\{
     PostController,
     CommentController,
     CertificateController,
+    LiveStreamController,
+    VideoStreamController,
 };
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +33,20 @@ Route::get('/courses/{course}', [CourseController::class, 'show']);
 // Verificar certificado público
 Route::get('/certificates/verify/{number}', [CertificateController::class, 'verify']);
 
+// ==================== TRANSMISSÕES AO VIVO (públicas) ====================
+Route::prefix('live-streams')->group(function () {
+    Route::get('/', [LiveStreamController::class, 'index']);
+    Route::get('/live-now', [LiveStreamController::class, 'liveNow']);
+    Route::get('/upcoming', [LiveStreamController::class, 'upcoming']);
+    Route::get('/recent', [LiveStreamController::class, 'recent']);
+    Route::get('/{id}', [LiveStreamController::class, 'show']);
+    Route::get('/{id}/stats', [LiveStreamController::class, 'stats']);
+});
+
+// Stream de vídeo: o token no query string É a autenticação, por isso é publica
+// (players de vídeo em geral não conseguem enviar cabeçalho Authorization)
+Route::get('/videos/{id}/stream', [VideoStreamController::class, 'stream'])->name('videos.stream');
+
 /*
 |--------------------------------------------------------------------------
 | Rotas Protegidas (requerem JWT)
@@ -43,6 +59,7 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/refresh-token', [AuthController::class, 'refreshToken']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+        Route::get('/token-status', [AuthController::class, 'tokenStatus']);
         Route::put('/profile', [AuthController::class, 'updateProfile']);
         Route::put('/change-password', [AuthController::class, 'changePassword']);
     });
@@ -131,6 +148,28 @@ Route::middleware('auth:api')->group(function () {
         
         // ADMIN
         Route::post('/admin/create', [CertificateController::class, 'adminCreate'])->middleware('admin');
+    });
+
+    // ==================== STREAMING SEGURO DE VÍDEO ====================
+    Route::get('/videos/{id}/stream-url', [VideoStreamController::class, 'getStreamUrl']);
+
+    // ==================== TRANSMISSÕES AO VIVO (autenticadas) ====================
+    Route::prefix('live-streams')->group(function () {
+        Route::post('/{id}/viewers', [LiveStreamController::class, 'updateViewers']);
+
+        // Professores e admin
+        Route::post('/', [LiveStreamController::class, 'store']);
+        Route::put('/{id}', [LiveStreamController::class, 'update']);
+        Route::post('/{id}/start', [LiveStreamController::class, 'start']);
+        Route::post('/{id}/end', [LiveStreamController::class, 'end']);
+        Route::post('/{id}/archive', [LiveStreamController::class, 'archive']);
+        Route::delete('/{id}', [LiveStreamController::class, 'destroy']);
+    });
+
+    // ==================== ADMIN - SEGURANÇA DE VÍDEO ====================
+    Route::middleware('admin')->group(function () {
+        Route::get('/admin/videos/{id}/access-log', [VideoStreamController::class, 'accessLog']);
+        Route::post('/admin/users/{id}/block-stream', [VideoStreamController::class, 'blockUser']);
     });
 
 });
