@@ -166,8 +166,6 @@
     </div>
 </div>
 
-@include('admin.sidebar')
-
 @push('scripts')
 <!-- Charts.js para gráficos mais avançados -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

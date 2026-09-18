@@ -9,5 +9,6 @@
 </head>
 <body class="antialiased bg-gray-100">
     @yield('content')
+    @stack('scripts')
 </body>
 </html>
