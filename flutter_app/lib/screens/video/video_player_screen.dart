@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:provider/provider.dart';
-import '../providers/course_provider.dart';
-import '../models/course_model.dart';
+import '../../providers/course_provider.dart';
+import '../../models/course_model.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   final int courseId;

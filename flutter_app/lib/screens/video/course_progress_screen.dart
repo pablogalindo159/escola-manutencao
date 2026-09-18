@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/course_provider.dart';
-import '../models/course_model.dart';
+import '../../providers/course_provider.dart';
+import '../../models/course_model.dart';
 
 class CourseProgressScreen extends StatefulWidget {
   final int courseId;

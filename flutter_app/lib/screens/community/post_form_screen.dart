@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/community_provider.dart';
+import '../../providers/community_provider.dart';
 
 class PostFormScreen extends StatefulWidget {
   final int? courseId;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/community_provider.dart';
-import '../widgets/post_card.dart';
+import '../../providers/community_provider.dart';
+import '../../widgets/post_card.dart';
 
 class PostsScreen extends StatefulWidget {
   final int? courseId;
