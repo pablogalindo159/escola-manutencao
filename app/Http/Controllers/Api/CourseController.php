@@ -76,12 +76,17 @@ class CourseController extends Controller
         try {
             $course->load([
                 'instructor:id,name,avatar_url,bio',
-                'videos:id,course_id,title,duration_seconds,order,thumbnail_url',
+                'videos:id,course_id,title,duration_seconds,order,thumbnail_url,status',
             ]);
 
             $user = auth('api')->user();
             $isSubscribed = false;
             $progressPercentage = 0;
+            $isStaff = $user && in_array($user->role, ['admin', 'instructor']);
+
+            $visibleVideos = $isStaff
+                ? $course->videos
+                : $course->videos->where('status', 'published')->values();
 
             if ($user) {
                 $isSubscribed = $user->courses()
@@ -108,7 +113,7 @@ class CourseController extends Controller
                     'rating' => $course->rating,
                     'featured' => $course->featured,
                     'instructor' => $course->instructor,
-                    'videos' => $course->videos->sortBy('order')->values(),
+                    'videos' => $visibleVideos->sortBy('order')->values(),
                     'student_count' => $course->getStudentCount(),
                     'is_subscribed' => $isSubscribed,
                     'progress_percentage' => $progressPercentage,

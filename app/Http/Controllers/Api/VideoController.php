@@ -18,6 +18,38 @@ class VideoController extends Controller
     {
         try {
             $user = auth('api')->user();
+
+            // Vídeo em rascunho/arquivado: só admin/instrutor pode ver
+            if ($video->status !== 'published' && (!$user || !in_array($user->role, ['admin', 'instructor']))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vídeo não encontrado',
+                ], 404);
+            }
+
+            // Checar se o usuário tem acesso ao curso deste vídeo
+            if ($user && !in_array($user->role, ['admin', 'instructor'])) {
+                $video->loadMissing('course');
+                $hasAccess = $video->course && $video->course->type === 'free';
+
+                if (!$hasAccess) {
+                    $hasAccess = $user->subscriptions()
+                        ->where('course_id', $video->course_id)
+                        ->where('status', 'active')
+                        ->where(function ($q) {
+                            $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                        })
+                        ->exists();
+                }
+
+                if (!$hasAccess) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Você não tem acesso a este vídeo',
+                    ], 403);
+                }
+            }
+
             $progress = null;
 
             if ($user) {
@@ -33,7 +65,8 @@ class VideoController extends Controller
                     'course_id' => $video->course_id,
                     'title' => $video->title,
                     'description' => $video->description,
-                    'video_url' => $video->video_url,
+                    // video_url NÃO é devolvida aqui de propósito - o player
+                    // deve pedir /api/videos/{id}/stream-url (token protegido)
                     'duration_seconds' => $video->duration_seconds,
                     'order' => $video->order,
                     'quality' => $video->quality,

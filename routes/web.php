@@ -61,7 +61,7 @@ Route::get('/live-streams/{liveStream}', function (LiveStream $liveStream) {
     return view('live-streams.show', ['stream' => $liveStream]);
 })->name('live-streams.show');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'admin.web'])->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/admin/cursos', [AdminDashboardController::class, 'courses'])->name('admin.courses');

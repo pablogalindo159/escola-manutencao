@@ -22,6 +22,14 @@ class VideoStreamController extends Controller
         $user = $request->user();
         $video = Video::with('course')->findOrFail($id);
 
+        // 0) Vídeo em rascunho/arquivado: só admin/instrutor pode ver
+        if ($video->status !== 'published' && !in_array($user->role, ['admin', 'instructor'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vídeo não disponível',
+            ], 404);
+        }
+
         // 1) Verificar acesso ao curso
         if (!$this->userHasAccess($user, $video)) {
             $this->logAccess($user->id, $video->id, $request, 'access_denied');
