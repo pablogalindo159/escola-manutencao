@@ -41,13 +41,37 @@
                 <div class="text-3xl font-bold text-blue-600 mb-4">
                     R$ {{ number_format($course->price, 2, ',', '.') }}
                 </div>
-                <a
-                    href="{{ route('login') }}"
-                    class="block text-center w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
-                >
-                    Fazer login para se inscrever
-                </a>
-                <p class="text-xs text-gray-500 mt-3 text-center">Acesso via aplicativo após a compra</p>
+
+                @auth
+                    @if ($isSubscribed)
+                        <a href="{{ route('student.courses.show', $course) }}"
+                           class="block text-center w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition">
+                            ✅ Ir para o curso
+                        </a>
+                    @elseif ($course->type === 'free')
+                        <form method="POST" action="{{ route('student.courses.enroll', $course) }}">
+                            @csrf
+                            <button type="submit"
+                                class="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
+                                Inscrever-se Grátis
+                            </button>
+                        </form>
+                    @else
+                        <a href="https://wa.me/554132830558" target="_blank"
+                           class="block text-center w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
+                            Falar sobre matrícula
+                        </a>
+                        <p class="text-xs text-gray-500 mt-3 text-center">Pagamento online em breve. Por enquanto, entre em contato.</p>
+                    @endif
+                @else
+                    <a href="{{ route('login') }}"
+                       class="block text-center w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
+                        Fazer login para se inscrever
+                    </a>
+                    <p class="text-xs text-gray-500 mt-3 text-center">
+                        Não tem conta? <a href="{{ route('register') }}" class="text-blue-600 hover:underline">Cadastre-se</a>
+                    </p>
+                @endauth
             </div>
         </div>
     </div>

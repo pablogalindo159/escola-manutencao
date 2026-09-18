@@ -73,6 +73,7 @@ Route::middleware('auth')->prefix('minha-area')->name('student.')->group(functio
     Route::get('/', [StudentDashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/cursos/{course}', [StudentCourseController::class, 'show'])->name('courses.show');
+    Route::post('/cursos/{course}/inscrever', [StudentCourseController::class, 'enroll'])->name('courses.enroll');
 
     Route::get('/videos/{video}', [StudentVideoController::class, 'watch'])->name('videos.watch');
     Route::get('/videos/{video}/stream', [StudentVideoController::class, 'stream'])->name('videos.stream');
@@ -99,6 +100,7 @@ Route::middleware(['auth', 'admin.web'])->group(function () {
     Route::post('/admin/cursos', [AdminDashboardController::class, 'storeCourse'])->name('admin.courses.store');
     Route::get('/admin/cursos/{course}/editar', [AdminDashboardController::class, 'editCourse'])->name('admin.courses.edit');
     Route::put('/admin/cursos/{course}', [AdminDashboardController::class, 'updateCourse'])->name('admin.courses.update');
+    Route::post('/admin/cursos/{course}/matricular', [AdminDashboardController::class, 'enrollStudent'])->name('admin.courses.enroll');
 
     Route::prefix('admin/cursos/{course}/videos')->name('admin.videos.')->group(function () {
         Route::get('/', [AdminVideoController::class, 'index'])->name('index');

@@ -136,6 +136,33 @@ class AdminDashboardController extends Controller
     }
 
     /**
+     * Matricular um aluno manualmente (uso: cursos pagos ate o Mercado
+     * Pago ser integrado, ou cortesias/testes)
+     */
+    public function enrollStudent(Course $course)
+    {
+        $validated = request()->validate([
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        $student = User::where('email', $validated['email'])->first();
+
+        if ($course->students()->where('users.id', $student->id)->exists()) {
+            return back()->with('error', 'Esse aluno já está matriculado neste curso.');
+        }
+
+        Subscription::create([
+            'user_id' => $student->id,
+            'course_id' => $course->id,
+            'type' => 'lifetime',
+            'price' => $course->price,
+            'status' => 'active',
+        ]);
+
+        return back()->with('success', "Aluno {$student->name} matriculado com sucesso!");
+    }
+
+    /**
      * Atualizar curso
      */
     public function updateCourse(Course $course)

@@ -85,6 +85,24 @@
             </div>
         </form>
 
+        <!-- ==================== MATRICULAR ALUNO ==================== -->
+        <div class="mt-10 bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-bold text-gray-900 mb-1">👤 Matricular Aluno Manualmente</h2>
+            <p class="text-sm text-gray-500 mb-4">
+                Use isso pra matricular quem pagou por fora (PIX, dinheiro) ou dar acesso de cortesia -
+                enquanto o pagamento online não está pronto.
+            </p>
+            <form method="POST" action="{{ route('admin.courses.enroll', $course) }}" class="flex gap-3">
+                @csrf
+                <input type="email" name="email" required placeholder="email@doaluno.com"
+                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 whitespace-nowrap">
+                    Matricular
+                </button>
+            </form>
+            <p class="text-xs text-gray-400 mt-2">O aluno precisa já ter uma conta criada (cadastro em /cadastro).</p>
+        </div>
+
         <!-- ==================== VÍDEOS DO CURSO ==================== -->
         <div class="mt-10">
             <h2 class="text-xl font-bold text-gray-900 mb-4">🎬 Vídeos do Curso</h2>
