@@ -84,7 +84,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                   setState(() {
                     _errorMessage = null;
                   });
-                  _initializePlayer();
+                  _loadVideoInfo();
                 },
                 icon: const Icon(Icons.refresh),
                 label: const Text('Tentar novamente'),

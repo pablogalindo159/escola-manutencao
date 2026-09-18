@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/course_provider.dart';
 import '../../widgets/course_card.dart';
 import '../../services/api_service.dart';
-import 'live_stream_screen.dart';
+import '../video/live_stream_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);

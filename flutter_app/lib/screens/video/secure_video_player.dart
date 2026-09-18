@@ -3,7 +3,7 @@ import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../services/api_service.dart';
+import '../../services/api_service.dart';
 
 /// Player de vídeo seguro: busca uma URL de stream com token de curta
 /// duração no backend (proteção contra compartilhamento de link/conta) e
