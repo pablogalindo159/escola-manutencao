@@ -6,16 +6,27 @@
 <a href="{{ route('student.courses.show', $video->course_id) }}" class="text-blue-600 hover:underline text-sm mb-4 inline-block">← {{ $video->course->title }}</a>
 
 <div class="bg-black rounded-xl overflow-hidden mb-4" style="aspect-ratio: 16/9;">
-    <video
-        controls
-        controlsList="nodownload"
-        oncontextmenu="return false;"
-        class="w-full h-full"
-        poster="{{ $video->thumbnail_url }}"
-    >
-        <source src="{{ route('student.videos.stream', $video) }}" type="video/mp4">
-        Seu navegador não suporta reprodução de vídeo.
-    </video>
+    @if ($video->youtube_id)
+        <iframe
+            class="w-full h-full"
+            src="https://www.youtube.com/embed/{{ $video->youtube_id }}"
+            title="{{ $video->title }}"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+        ></iframe>
+    @else
+        <video
+            controls
+            controlsList="nodownload"
+            oncontextmenu="return false;"
+            class="w-full h-full"
+            poster="{{ $video->thumbnail_url }}"
+        >
+            <source src="{{ route('student.videos.stream', $video) }}" type="video/mp4">
+            Seu navegador não suporta reprodução de vídeo.
+        </video>
+    @endif
 </div>
 
 <div class="bg-white rounded-xl shadow p-6 mb-4">

@@ -75,4 +75,21 @@ class Video extends Model
             ->distinct('user_id')
             ->count();
     }
+
+    /**
+     * Extrai o ID do vídeo se video_url for um link do YouTube
+     * (aceita watch?v=, youtu.be/ e embed/). Retorna null se não for.
+     */
+    public function getYoutubeIdAttribute(): ?string
+    {
+        if (!$this->video_url) {
+            return null;
+        }
+
+        if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/', $this->video_url, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
+    }
 }
