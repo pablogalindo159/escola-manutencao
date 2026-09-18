@@ -3,7 +3,7 @@
 @section('content')
 <div class="min-h-screen bg-gray-50">
     <div class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-wrap items-center justify-between gap-3">
             <h1 class="text-3xl font-bold text-gray-900">Cursos</h1>
             <div class="flex items-center gap-4">
                 <a href="{{ route('admin.courses.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-semibold">+ Novo Curso</a>
@@ -20,6 +20,7 @@
         @endif
 
         <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
@@ -64,6 +65,7 @@
                     @endforelse
                 </tbody>
             </table>
+            </div>
         </div>
 
         <div class="mt-4">

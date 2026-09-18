@@ -4,7 +4,7 @@
 <div class="min-h-screen bg-gray-50">
     <!-- Header -->
     <div class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-wrap items-center justify-between gap-3">
             <h1 class="text-3xl font-bold text-gray-900">Dashboard Administrativo</h1>
             <div class="flex items-center gap-4">
                 <a href="{{ route('admin.live-streams.index') }}" class="text-sm text-red-600 hover:text-red-700 font-medium">🔴 Transmissões ao Vivo</a>
@@ -24,7 +24,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <!-- Total Users -->
             <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <p class="text-gray-600 text-sm">Alunos Ativos</p>
                         <p class="text-3xl font-bold text-gray-900 mt-2">{{ number_format($metrics['total_users']) }}</p>
@@ -36,7 +36,7 @@
 
             <!-- Revenue -->
             <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <p class="text-gray-600 text-sm">Receita Total</p>
                         <p class="text-3xl font-bold text-gray-900 mt-2">R$ {{ number_format($metrics['total_revenue'], 2, ',', '.') }}</p>
@@ -48,7 +48,7 @@
 
             <!-- Active Subscriptions -->
             <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <p class="text-gray-600 text-sm">Inscrições Ativas</p>
                         <p class="text-3xl font-bold text-gray-900 mt-2">{{ number_format($metrics['active_subscriptions']) }}</p>
@@ -60,7 +60,7 @@
 
             <!-- Completion Rate -->
             <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <p class="text-gray-600 text-sm">Taxa Conclusão</p>
                         <p class="text-3xl font-bold text-gray-900 mt-2">{{ $metrics['completion_rate'] }}%</p>

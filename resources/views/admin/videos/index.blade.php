@@ -3,7 +3,7 @@
 @section('content')
 <div class="min-h-screen bg-gray-50">
     <div class="bg-white shadow-sm">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900">Vídeos do Curso</h1>
                 <p class="text-gray-600 mt-1">{{ $course->title }}</p>
@@ -28,6 +28,7 @@
 
         <div class="bg-white rounded-lg shadow overflow-hidden">
             @if($videos->count())
+                <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead class="bg-gray-100 border-b">
                         <tr>
@@ -67,6 +68,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             @else
                 <div class="px-6 py-12 text-center">
                     <p class="text-gray-600 text-lg mb-4">Nenhum vídeo cadastrado ainda.</p>

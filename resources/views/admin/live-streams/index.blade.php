@@ -3,7 +3,7 @@
 @section('content')
 <div class="min-h-screen bg-gray-50">
     <div class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-wrap items-center justify-between gap-3">
             <h1 class="text-3xl font-bold text-gray-900">Transmissões ao Vivo</h1>
             <a href="{{ route('dashboard') }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">← Voltar ao Dashboard</a>
         </div>
@@ -69,6 +69,7 @@
 
         <div class="bg-white rounded-lg shadow overflow-hidden">
             @if($streams->count())
+                <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead class="bg-gray-100 border-b">
                         <tr>
@@ -172,6 +173,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
 
                 <div class="px-6 py-4 border-t bg-gray-50">
                     {{ $streams->links() }}
