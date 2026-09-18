@@ -56,6 +56,42 @@ class Post {
   }
 
   bool get isPublished => status == 'published';
+
+  Post copyWith({
+    int? id,
+    int? courseId,
+    int? userId,
+    String? title,
+    String? content,
+    int? likesCount,
+    int? commentsCount,
+    bool? isPinned,
+    String? status,
+    String? authorName,
+    String? authorAvatar,
+    bool? isLikedByUser,
+    List<Comment>? comments,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Post(
+      id: id ?? this.id,
+      courseId: courseId ?? this.courseId,
+      userId: userId ?? this.userId,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      likesCount: likesCount ?? this.likesCount,
+      commentsCount: commentsCount ?? this.commentsCount,
+      isPinned: isPinned ?? this.isPinned,
+      status: status ?? this.status,
+      authorName: authorName ?? this.authorName,
+      authorAvatar: authorAvatar ?? this.authorAvatar,
+      isLikedByUser: isLikedByUser ?? this.isLikedByUser,
+      comments: comments ?? this.comments,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }
 
 class Comment {

@@ -149,13 +149,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               children: [
                                 CircleAvatar(
                                   radius: 16,
-                                  backgroundImage: NetworkImage(
-                                    post.authorAvatarUrl,
-                                  ),
+                                  backgroundImage: (post.authorAvatar != null && post.authorAvatar!.isNotEmpty)
+                                      ? NetworkImage(post.authorAvatar!)
+                                      : null,
                                   onBackgroundImageError: (_, __) {},
-                                  child: post.authorAvatarUrl.isEmpty
+                                  child: (post.authorAvatar == null || post.authorAvatar!.isEmpty)
                                       ? Text(
-                                          post.authorName[0],
+                                          (post.authorName != null && post.authorName!.isNotEmpty)
+                                              ? post.authorName![0]
+                                              : '?',
                                           style: const TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.bold,
@@ -170,7 +172,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        post.authorName,
+                                        post.authorName ?? 'Usuário',
                                         style: const TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
@@ -238,7 +240,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               ],
                             ),
                             Text(
-                              '${post.commentCount} comentários',
+                              '${post.commentsCount} comentários',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[600],
@@ -298,7 +300,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       const SizedBox(height: 12),
 
                       // Comments List
-                      if (post.comments.isEmpty)
+                      if ((post.comments ?? []).isEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Center(
@@ -316,9 +318,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: post.comments.length,
+                          itemCount: (post.comments ?? []).length,
                           itemBuilder: (context, index) {
-                            final comment = post.comments[index];
+                            final comment = (post.comments ?? [])[index];
                             return _buildCommentTile(comment);
                           },
                         ),
@@ -419,11 +421,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             children: [
               CircleAvatar(
                 radius: 14,
-                backgroundImage: NetworkImage(comment.authorAvatarUrl),
+                backgroundImage: (comment.authorAvatar != null && comment.authorAvatar!.isNotEmpty)
+                    ? NetworkImage(comment.authorAvatar!)
+                    : null,
                 onBackgroundImageError: (_, __) {},
-                child: comment.authorAvatarUrl.isEmpty
+                child: (comment.authorAvatar == null || comment.authorAvatar!.isEmpty)
                     ? Text(
-                        comment.authorName[0],
+                        (comment.authorName != null && comment.authorName!.isNotEmpty)
+                            ? comment.authorName![0]
+                            : '?',
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -437,7 +443,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      comment.authorName,
+                      comment.authorName ?? 'Usuário',
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,

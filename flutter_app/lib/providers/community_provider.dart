@@ -107,7 +107,9 @@ class CommunityProvider with ChangeNotifier {
       // Atualizar localmente
       final postIndex = _posts.indexWhere((p) => p.id == postId);
       if (postIndex != -1) {
-        _posts[postIndex].likesCount++;
+        _posts[postIndex] = _posts[postIndex].copyWith(
+          likesCount: _posts[postIndex].likesCount + 1,
+        );
         notifyListeners();
       }
       
@@ -127,7 +129,9 @@ class CommunityProvider with ChangeNotifier {
       // Atualizar localmente
       final postIndex = _posts.indexWhere((p) => p.id == postId);
       if (postIndex != -1) {
-        _posts[postIndex].likesCount--;
+        _posts[postIndex] = _posts[postIndex].copyWith(
+          likesCount: _posts[postIndex].likesCount - 1,
+        );
         notifyListeners();
       }
       

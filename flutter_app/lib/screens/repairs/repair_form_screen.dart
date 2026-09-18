@@ -188,7 +188,7 @@ class _RepairFormScreenState extends State<RepairFormScreen> {
                     alignment: Alignment.topLeft,
                     child: Padding(
                       padding: const EdgeInsets.only(top: 16),
-                      child: Icon(Icons.analysis_outlined),
+                      child: Icon(Icons.analytics_outlined),
                     ),
                   ),
                   border: OutlineInputBorder(

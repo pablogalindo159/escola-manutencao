@@ -94,6 +94,52 @@ class Course {
   bool get isPaid => type == 'paid';
   bool get isPublished => status == 'published';
   String get difficultyLevel => level;
+
+  Course copyWith({
+    int? id,
+    String? title,
+    String? description,
+    String? thumbnailUrl,
+    double? price,
+    String? type,
+    int? durationMinutes,
+    String? category,
+    String? level,
+    double? rating,
+    bool? featured,
+    String? status,
+    int? instructorId,
+    String? instructorName,
+    String? instructorAvatar,
+    List<Video>? videos,
+    int? studentCount,
+    bool? isSubscribed,
+    double? progressPercentage,
+    DateTime? createdAt,
+  }) {
+    return Course(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      price: price ?? this.price,
+      type: type ?? this.type,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
+      category: category ?? this.category,
+      level: level ?? this.level,
+      rating: rating ?? this.rating,
+      featured: featured ?? this.featured,
+      status: status ?? this.status,
+      instructorId: instructorId ?? this.instructorId,
+      instructorName: instructorName ?? this.instructorName,
+      instructorAvatar: instructorAvatar ?? this.instructorAvatar,
+      videos: videos ?? this.videos,
+      studentCount: studentCount ?? this.studentCount,
+      isSubscribed: isSubscribed ?? this.isSubscribed,
+      progressPercentage: progressPercentage ?? this.progressPercentage,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }
 
 class Video {

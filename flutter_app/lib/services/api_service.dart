@@ -463,6 +463,128 @@ class ApiService {
     }
   }
 
+  // ==================== COMUNIDADE (POSTS) ====================
+
+  /// Listar posts de um curso
+  Future<Map<String, dynamic>> getPosts({
+    int? courseId,
+    int page = 1,
+    int perPage = 20,
+  }) async {
+    if (courseId == null) {
+      throw Exception('É necessário informar o curso para listar os posts');
+    }
+    try {
+      final response = await _dio.get(
+        '/posts/course/$courseId',
+        queryParameters: {
+          'page': page,
+          'per_page': perPage,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception(response.data['message']);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Obter detalhes de um post
+  Future<Map<String, dynamic>> getPost(int postId) async {
+    try {
+      final response = await _dio.get('/posts/$postId');
+
+      if (response.statusCode == 200) {
+        return response.data['data'];
+      }
+      throw Exception(response.data['message']);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Criar novo post
+  Future<Map<String, dynamic>> createPost({
+    required String title,
+    required String content,
+    int? courseId,
+  }) async {
+    if (courseId == null) {
+      throw Exception('É necessário informar o curso para criar um post');
+    }
+    try {
+      final response = await _dio.post(
+        '/posts',
+        data: {
+          'course_id': courseId,
+          'title': title,
+          'content': content,
+        },
+      );
+
+      if (response.statusCode == 201) {
+        return response.data['data'];
+      }
+      throw Exception(response.data['message']);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Curtir post
+  Future<void> likePost(int postId) async {
+    try {
+      final response = await _dio.post('/posts/$postId/like');
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception(response.data['message']);
+      }
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Descurtir post
+  Future<void> unlikePost(int postId) async {
+    try {
+      final response = await _dio.delete('/posts/$postId/like');
+
+      if (response.statusCode != 200) {
+        throw Exception(response.data['message']);
+      }
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Criar comentário
+  Future<Map<String, dynamic>> createComment({
+    required int postId,
+    required String content,
+    int? parentCommentId,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/comments',
+        data: {
+          'post_id': postId,
+          'content': content,
+          if (parentCommentId != null) 'parent_comment_id': parentCommentId,
+        },
+      );
+
+      if (response.statusCode == 201) {
+        return response.data['data'];
+      }
+      throw Exception(response.data['message']);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   // ==================== UTILITÁRIOS ====================
 
   Future<String?> getToken() async {

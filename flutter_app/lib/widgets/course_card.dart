@@ -27,7 +27,7 @@ class CourseCard extends StatelessWidget {
             ),
           ],
         ),
-        overflow: ClipRRect(
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

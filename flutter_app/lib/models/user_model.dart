@@ -99,4 +99,16 @@ class User {
   bool get isInstructor => role == 'instructor';
   bool get isStudent => role == 'student';
   bool get isActive => status == 'active';
+
+  String get roleLabel {
+    switch (role) {
+      case 'admin':
+        return 'Administrador';
+      case 'instructor':
+        return 'Professor';
+      case 'student':
+      default:
+        return 'Aluno';
+    }
+  }
 }

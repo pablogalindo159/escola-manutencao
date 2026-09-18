@@ -105,7 +105,7 @@ class PostCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '${post.commentCount} comentários',
+                      '${post.commentsCount} comentários',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],
