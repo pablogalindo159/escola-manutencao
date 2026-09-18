@@ -9,7 +9,7 @@
     @if ($video->youtube_id)
         <iframe
             class="w-full h-full"
-            src="https://www.youtube.com/embed/{{ $video->youtube_id }}"
+            src="https://www.youtube.com/embed/{{ $video->youtube_id }}?modestbranding=1&rel=0&iv_load_policy=3&fs=1"
             title="{{ $video->title }}"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
