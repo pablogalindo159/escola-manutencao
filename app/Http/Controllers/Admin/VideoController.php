@@ -56,7 +56,7 @@ class VideoController extends Controller
 
         Video::create($validated);
 
-        return redirect()->route('admin.videos.index', $course)
+        return redirect()->route('admin.courses.edit', $course)
             ->with('success', 'Vídeo adicionado com sucesso! Publique-o quando estiver pronto.');
     }
 
@@ -90,7 +90,7 @@ class VideoController extends Controller
 
         $video->update($validated);
 
-        return redirect()->route('admin.videos.edit', [$course, $video])
+        return redirect()->route('admin.courses.edit', $course)
             ->with('success', 'Vídeo atualizado com sucesso!');
     }
 
@@ -101,7 +101,7 @@ class VideoController extends Controller
     {
         $video->delete();
 
-        return redirect()->route('admin.videos.index', $course)
+        return redirect()->route('admin.courses.edit', $course)
             ->with('success', 'Vídeo removido.');
     }
 }

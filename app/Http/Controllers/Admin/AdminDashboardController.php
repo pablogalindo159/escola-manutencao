@@ -130,7 +130,8 @@ class AdminDashboardController extends Controller
     public function editCourse(Course $course)
     {
         return view('admin.courses.edit', [
-            'course' => $course
+            'course' => $course,
+            'videos' => $course->videos()->orderBy('order')->get(),
         ]);
     }
 
