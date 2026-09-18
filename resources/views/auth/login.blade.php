@@ -71,6 +71,9 @@
         </div>
 
         <p class="text-center text-sm text-gray-600 mt-6">
+            Ainda não tem conta? <a href="{{ route('register') }}" class="text-blue-600 hover:underline">Criar conta</a>
+        </p>
+        <p class="text-center text-sm text-gray-600 mt-2">
             <a href="{{ url('/') }}" class="text-blue-600 hover:underline">← Voltar para a página inicial</a>
         </p>
     </div>

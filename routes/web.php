@@ -55,6 +55,9 @@ Route::get('/login', [WebAuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [WebAuthController::class, 'login'])->name('login.attempt');
 Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
 
+Route::get('/cadastro', [WebAuthController::class, 'showRegister'])->name('register');
+Route::post('/cadastro', [WebAuthController::class, 'register'])->name('register.attempt');
+
 Route::get('/cursos/{course}', [CourseController::class, 'show'])->name('courses.detail');
 
 Route::get('/live-streams/{liveStream}', function (LiveStream $liveStream) {

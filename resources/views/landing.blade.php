@@ -31,12 +31,12 @@
                     Cursos práticos com certificados oficiais. Aprenda com os melhores professores da indústria.
                 </p>
                 <div class="flex gap-4">
-                    <button class="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                    <a href="{{ route('register') }}" class="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
                         Começar Agora
-                    </button>
-                    <button class="px-8 py-3 border-2 border-blue-600 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition">
+                    </a>
+                    <a href="#cursos" class="px-8 py-3 border-2 border-blue-600 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition">
                         Saiba Mais
-                    </button>
+                    </a>
                 </div>
             </div>
             <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg h-96 flex items-center justify-center text-white">
