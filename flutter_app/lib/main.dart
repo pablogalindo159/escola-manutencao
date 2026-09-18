@@ -3,12 +3,22 @@ import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/course_provider.dart';
 import 'providers/repair_provider.dart';
+import 'providers/community_provider.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/home/course_detail_screen.dart';
+import 'screens/video/course_progress_screen.dart';
+import 'screens/video/video_player_screen.dart';
 import 'screens/repairs/repairs_list_screen.dart';
+import 'screens/repairs/repair_detail_screen.dart';
+import 'screens/repairs/repair_form_screen.dart';
+import 'screens/repairs/repair_photo_screen.dart';
+import 'screens/community/posts_screen.dart';
+import 'screens/community/post_detail_screen.dart';
+import 'screens/community/post_form_screen.dart';
+import 'screens/profile/profile_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -23,7 +33,9 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CourseProvider()),
+        ChangeNotifierProvider(create: (_) => VideoProgressProvider()),
         ChangeNotifierProvider(create: (_) => RepairProvider()),
+        ChangeNotifierProvider(create: (_) => CommunityProvider()),
       ],
       child: MaterialApp(
         title: 'Escola da Manutenção',
@@ -31,7 +43,6 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           primaryColor: const Color(0xFF0066FF),
           useMaterial3: true,
-          fontFamily: 'Inter',
           appBarTheme: const AppBarTheme(
             elevation: 0,
             backgroundColor: Color(0xFF0066FF),
@@ -42,7 +53,6 @@ class MyApp extends StatelessWidget {
               backgroundColor: const Color(0xFF0066FF),
               foregroundColor: Colors.white,
               textStyle: const TextStyle(
-                fontFamily: 'Poppins',
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -75,10 +85,46 @@ class MyApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/home': (context) => const HomeScreen(),
-          '/repairs': (context) => const RepairsListScreen(),
+          '/profile': (context) => const ProfileScreen(),
+
           '/course-detail': (context) {
             final courseId = ModalRoute.of(context)!.settings.arguments as int;
             return CourseDetailScreen(courseId: courseId);
+          },
+          '/course-progress': (context) {
+            final courseId = ModalRoute.of(context)!.settings.arguments as int;
+            return CourseProgressScreen(courseId: courseId);
+          },
+          '/video-player': (context) {
+            final args = ModalRoute.of(context)!.settings.arguments as Map;
+            return VideoPlayerScreen(
+              courseId: args['courseId'] as int,
+              videoId: args['videoId'] as int,
+            );
+          },
+
+          '/repairs': (context) => const RepairsListScreen(),
+          '/repair-form': (context) => const RepairFormScreen(),
+          '/repair-detail': (context) {
+            final repairId = ModalRoute.of(context)!.settings.arguments as int;
+            return RepairDetailScreen(repairId: repairId);
+          },
+          '/repair-photo': (context) {
+            final repairId = ModalRoute.of(context)!.settings.arguments as int;
+            return RepairPhotoScreen(repairId: repairId);
+          },
+
+          '/posts': (context) {
+            final courseId = ModalRoute.of(context)?.settings.arguments as int?;
+            return PostsScreen(courseId: courseId);
+          },
+          '/post-detail': (context) {
+            final postId = ModalRoute.of(context)!.settings.arguments as int;
+            return PostDetailScreen(postId: postId);
+          },
+          '/post-form': (context) {
+            final courseId = ModalRoute.of(context)?.settings.arguments as int?;
+            return PostFormScreen(courseId: courseId);
           },
         },
       ),
