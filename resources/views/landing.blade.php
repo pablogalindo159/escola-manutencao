@@ -14,7 +14,7 @@
                     <a href="#cursos" class="text-gray-700 hover:text-blue-600">Cursos</a>
                     <a href="#sobre" class="text-gray-700 hover:text-blue-600">Sobre</a>
                     <a href="#contato" class="text-gray-700 hover:text-blue-600">Contato</a>
-                    <a href="#" class="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">Login</a>
+                    <a href="{{ route('login') }}" class="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">Login</a>
                 </div>
             </div>
         </div>

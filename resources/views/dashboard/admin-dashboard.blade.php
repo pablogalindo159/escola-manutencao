@@ -4,8 +4,15 @@
 <div class="min-h-screen bg-gray-50">
     <!-- Header -->
     <div class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
             <h1 class="text-3xl font-bold text-gray-900">Dashboard Administrativo</h1>
+            <div class="flex items-center gap-4">
+                <span class="text-gray-600 text-sm">Olá, {{ auth()->user()->name }}</span>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="text-sm text-red-600 hover:text-red-700 font-medium">Sair</button>
+                </form>
+            </div>
         </div>
     </div>
 

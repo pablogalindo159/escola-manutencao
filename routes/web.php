@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Web\WebAuthController;
 
 Route::get('/', function () {
     $featured_courses = [
@@ -53,4 +54,10 @@ Route::get('/', function () {
     return view('landing', compact('featured_courses', 'testimonials'));
 });
 
-Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+Route::get('/login', [WebAuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [WebAuthController::class, 'login'])->name('login.attempt');
+Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+});
