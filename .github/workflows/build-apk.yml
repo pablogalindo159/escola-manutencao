@@ -34,17 +34,38 @@ jobs:
       - name: Permitir conexão HTTP com a VPS (sem SSL ainda)
         working-directory: flutter_app
         run: |
+          set -e
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+
           mkdir -p android/app/src/main/res/xml
-          cat > android/app/src/main/res/xml/network_security_config.xml << 'EOF'
+          cat > android/app/src/main/res/xml/network_security_config.xml << 'XMLEOF'
           <?xml version="1.0" encoding="utf-8"?>
           <network-security-config>
-              <domain-config cleartextTrafficPermitted="true">
-                  <domain includeSubdomains="true">198.199.64.162</domain>
-              </domain-config>
+              <base-config cleartextTrafficPermitted="true" />
           </network-security-config>
-          EOF
-          sed -i 's#<application#<application android:networkSecurityConfig="@xml/network_security_config"#' android/app/src/main/AndroidManifest.xml
-          grep -c "networkSecurityConfig" android/app/src/main/AndroidManifest.xml || echo "AVISO: nao encontrou apos o sed"
+          XMLEOF
+
+          python3 - << 'PYEOF'
+          path = "android/app/src/main/AndroidManifest.xml"
+          content = open(path).read()
+          assert "<application" in content, "Tag <application> nao encontrada no manifest"
+          content = content.replace(
+              "<application",
+              '<application android:usesCleartextTraffic="true" android:networkSecurityConfig="@xml/network_security_config"',
+              1,
+          )
+          open(path, "w").write(content)
+          PYEOF
+
+          echo "===== AndroidManifest.xml final ====="
+          cat "$MANIFEST"
+          echo "======================================"
+
+          if ! grep -q 'usesCleartextTraffic="true"' "$MANIFEST"; then
+            echo "ERRO: nao conseguiu aplicar usesCleartextTraffic no AndroidManifest.xml"
+            exit 1
+          fi
+          echo "OK: cleartext HTTP liberado no manifest"
 
       - name: Instalar dependências
         working-directory: flutter_app
