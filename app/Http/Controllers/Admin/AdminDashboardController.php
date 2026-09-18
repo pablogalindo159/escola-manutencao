@@ -82,6 +82,49 @@ class AdminDashboardController extends Controller
     }
 
     /**
+     * Formulário de novo curso
+     */
+    public function createCourse()
+    {
+        return view('admin.courses.form');
+    }
+
+    /**
+     * Salvar novo curso
+     */
+    public function storeCourse()
+    {
+        $validated = request()->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'category' => 'required|string',
+            'level' => 'required|in:beginner,intermediate,advanced',
+            'duration_minutes' => 'required|integer|min:1',
+            'price' => 'required|numeric|min:0',
+            'type' => 'required|in:free,paid',
+            'thumbnail_url' => 'nullable|url',
+        ]);
+
+        $validated['instructor_id'] = auth()->id();
+        $validated['status'] = 'draft';
+        $validated['featured'] = request()->boolean('featured');
+
+        $slug = \Illuminate\Support\Str::slug($validated['title']);
+        $originalSlug = $slug;
+        $count = 1;
+        while (Course::where('slug', $slug)->exists()) {
+            $slug = "{$originalSlug}-{$count}";
+            $count++;
+        }
+        $validated['slug'] = $slug;
+
+        $course = Course::create($validated);
+
+        return redirect()->route('admin.courses.edit', $course)
+            ->with('success', 'Curso criado com sucesso! Agora adicione vídeos e publique quando estiver pronto.');
+    }
+
+    /**
      * Editar curso
      */
     public function editCourse(Course $course)

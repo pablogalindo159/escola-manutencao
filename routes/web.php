@@ -65,6 +65,8 @@ Route::middleware(['auth', 'admin.web'])->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/admin/cursos', [AdminDashboardController::class, 'courses'])->name('admin.courses');
+    Route::get('/admin/cursos/novo', [AdminDashboardController::class, 'createCourse'])->name('admin.courses.create');
+    Route::post('/admin/cursos', [AdminDashboardController::class, 'storeCourse'])->name('admin.courses.store');
     Route::get('/admin/cursos/{course}/editar', [AdminDashboardController::class, 'editCourse'])->name('admin.courses.edit');
     Route::put('/admin/cursos/{course}', [AdminDashboardController::class, 'updateCourse'])->name('admin.courses.update');
 
