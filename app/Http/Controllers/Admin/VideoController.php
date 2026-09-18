@@ -10,6 +10,80 @@ use Illuminate\Http\Request;
 class VideoController extends Controller
 {
     /**
+     * Detecta automaticamente titulo/duracao/thumbnail a partir da URL
+     * (AJAX - chamado pelo botao "Detectar dados" no formulario)
+     */
+    public function detectMetadata(Request $request)
+    {
+        $validated = $request->validate([
+            'video_url' => 'required|url',
+        ]);
+
+        $url = $validated['video_url'];
+
+        // YouTube: usa oEmbed publico do proprio YouTube (sem precisar de chave de API)
+        if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/', $url)) {
+            try {
+                $response = \Illuminate\Support\Facades\Http::timeout(10)
+                    ->get('https://www.youtube.com/oembed', [
+                        'url' => $url,
+                        'format' => 'json',
+                    ]);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+
+                    return response()->json([
+                        'success' => true,
+                        'title' => $data['title'] ?? null,
+                        'thumbnail_url' => $data['thumbnail_url'] ?? null,
+                        'duration_seconds' => null,
+                        'note' => 'A duração de vídeos do YouTube não pode ser detectada automaticamente (precisaria de uma chave de API do Google). Preencha manualmente.',
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // segue pro erro generico abaixo
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Não foi possível buscar os dados desse vídeo do YouTube. Confira se o link está certo.',
+            ], 422);
+        }
+
+        // Arquivo direto (mp4, S3, CDN, etc): usa ffprobe pra ler a duracao
+        // sem precisar baixar o arquivo inteiro (le so o cabecalho/indice)
+        try {
+            $process = new \Symfony\Component\Process\Process([
+                'ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', $url,
+            ]);
+            $process->setTimeout(15);
+            $process->run();
+
+            if ($process->isSuccessful()) {
+                $data = json_decode($process->getOutput(), true);
+                $duration = isset($data['format']['duration']) ? (int) round((float) $data['format']['duration']) : null;
+
+                if ($duration) {
+                    return response()->json([
+                        'success' => true,
+                        'duration_seconds' => $duration,
+                        'title' => null,
+                        'thumbnail_url' => null,
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            // segue pro erro generico abaixo
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Não foi possível detectar os dados automaticamente pra esse link. Preencha manualmente.',
+        ], 422);
+    }
+
+    /**
      * Listar vídeos de um curso
      */
     public function index(Course $course)

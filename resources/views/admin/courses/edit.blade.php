@@ -232,7 +232,7 @@
 
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">Título</label>
-                            <input type="text" name="title" value="{{ old('title') }}" required
+                            <input type="text" name="title" id="new-video-title" value="{{ old('title') }}" required
                                 class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
 
@@ -244,15 +244,22 @@
 
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">URL do Vídeo</label>
-                            <input type="url" name="video_url" value="{{ old('video_url') }}" required
-                                placeholder="https://..."
-                                class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <div class="flex gap-2">
+                                <input type="url" name="video_url" id="new-video-url" value="{{ old('video_url') }}" required
+                                    placeholder="https://..."
+                                    class="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <button type="button" onclick="detectVideoData()"
+                                    class="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 whitespace-nowrap">
+                                    🔍 Detectar dados
+                                </button>
+                            </div>
+                            <p id="detect-status" class="text-xs mt-1"></p>
                         </div>
 
                         <div class="grid grid-cols-3 gap-3">
                             <div>
                                 <label class="block text-xs font-medium text-gray-700 mb-1">Duração (seg)</label>
-                                <input type="number" name="duration_seconds" value="{{ old('duration_seconds', 0) }}" required min="0"
+                                <input type="number" name="duration_seconds" id="new-video-duration" value="{{ old('duration_seconds', 0) }}" required min="0"
                                     class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                             </div>
                             <div>
@@ -273,7 +280,7 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-medium text-gray-700 mb-1">Thumbnail (opcional)</label>
-                                <input type="url" name="thumbnail_url" value="{{ old('thumbnail_url') }}"
+                                <input type="url" name="thumbnail_url" id="new-video-thumbnail" value="{{ old('thumbnail_url') }}"
                                     class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                             </div>
                             <div>
@@ -296,4 +303,56 @@
         </div>
     </div>
 </div>
+
+<script>
+async function detectVideoData() {
+    const url = document.getElementById('new-video-url').value;
+    const status = document.getElementById('detect-status');
+
+    if (!url) {
+        status.textContent = 'Cole a URL do vídeo primeiro.';
+        status.className = 'text-xs mt-1 text-red-600';
+        return;
+    }
+
+    status.textContent = 'Buscando dados...';
+    status.className = 'text-xs mt-1 text-gray-500';
+
+    try {
+        const response = await fetch('{{ route("admin.videos.detect", $course) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ video_url: url }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            status.textContent = data.message || 'Não foi possível detectar os dados.';
+            status.className = 'text-xs mt-1 text-red-600';
+            return;
+        }
+
+        if (data.title) {
+            document.getElementById('new-video-title').value = data.title;
+        }
+        if (data.duration_seconds) {
+            document.getElementById('new-video-duration').value = data.duration_seconds;
+        }
+        if (data.thumbnail_url) {
+            document.getElementById('new-video-thumbnail').value = data.thumbnail_url;
+        }
+
+        status.textContent = data.note || '✅ Dados detectados!';
+        status.className = 'text-xs mt-1 ' + (data.note ? 'text-yellow-600' : 'text-green-600');
+    } catch (e) {
+        status.textContent = 'Erro ao detectar dados. Preencha manualmente.';
+        status.className = 'text-xs mt-1 text-red-600';
+    }
+}
+</script>
 @endsection

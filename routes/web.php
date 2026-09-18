@@ -103,6 +103,7 @@ Route::middleware(['auth', 'admin.web'])->group(function () {
     Route::post('/admin/cursos/{course}/matricular', [AdminDashboardController::class, 'enrollStudent'])->name('admin.courses.enroll');
 
     Route::prefix('admin/cursos/{course}/videos')->name('admin.videos.')->group(function () {
+        Route::post('/detectar', [AdminVideoController::class, 'detectMetadata'])->name('detect');
         Route::get('/', [AdminVideoController::class, 'index'])->name('index');
         Route::get('/novo', [AdminVideoController::class, 'create'])->name('create');
         Route::post('/', [AdminVideoController::class, 'store'])->name('store');
