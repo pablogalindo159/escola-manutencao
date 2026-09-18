@@ -98,7 +98,7 @@
                     
                     <div class="border-t pt-4 flex justify-between items-center">
                         <span class="text-2xl font-bold text-blue-600">R$ {{ number_format($course['price'], 2, ',', '.') }}</span>
-                        <a href="#" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition">
+                        <a href="{{ route('courses.detail', $course['id']) }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition">
                             Saiba Mais
                         </a>
                     </div>

@@ -3,40 +3,34 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Web\WebAuthController;
+use App\Http\Controllers\Web\CourseController;
+use App\Models\Course;
 
 Route::get('/', function () {
-    $featured_courses = [
-        [
-            'id' => 1,
-            'name' => 'Manutenção de Notebooks',
-            'gradient' => 'bg-gradient-to-br from-blue-500 to-blue-700',
-            'icon' => '💻',
-            'reviews' => 128,
-            'hours' => 24,
-            'videos' => 45,
-            'price' => 297.00,
-        ],
-        [
-            'id' => 2,
-            'name' => 'Reparo de Smartphones',
-            'gradient' => 'bg-gradient-to-br from-purple-500 to-purple-700',
-            'icon' => '📱',
-            'reviews' => 96,
-            'hours' => 18,
-            'videos' => 32,
-            'price' => 247.00,
-        ],
-        [
-            'id' => 3,
-            'name' => 'Diagnóstico Eletrônico',
-            'gradient' => 'bg-gradient-to-br from-green-500 to-green-700',
-            'icon' => '🔧',
-            'reviews' => 74,
-            'hours' => 30,
-            'videos' => 52,
-            'price' => 347.00,
-        ],
+    $style_by_category = [
+        'Notebooks' => ['gradient' => 'bg-gradient-to-br from-blue-500 to-blue-700', 'icon' => '💻'],
+        'Smartphones' => ['gradient' => 'bg-gradient-to-br from-purple-500 to-purple-700', 'icon' => '📱'],
+        'Eletrônica' => ['gradient' => 'bg-gradient-to-br from-green-500 to-green-700', 'icon' => '🔧'],
     ];
+
+    $featured_courses = Course::where('status', 'published')
+        ->where('featured', true)
+        ->take(6)
+        ->get()
+        ->map(function ($course) use ($style_by_category) {
+            $style = $style_by_category[$course->category] ?? ['gradient' => 'bg-gradient-to-br from-gray-500 to-gray-700', 'icon' => '📘'];
+
+            return [
+                'id' => $course->id,
+                'name' => $course->title,
+                'gradient' => $style['gradient'],
+                'icon' => $style['icon'],
+                'reviews' => $course->subscribers()->count(),
+                'hours' => round($course->duration_minutes / 60),
+                'videos' => $course->videos()->count(),
+                'price' => $course->price,
+            ];
+        });
 
     $testimonials = [
         [
@@ -57,6 +51,8 @@ Route::get('/', function () {
 Route::get('/login', [WebAuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [WebAuthController::class, 'login'])->name('login.attempt');
 Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
+
+Route::get('/cursos/{course}', [CourseController::class, 'show'])->name('courses.detail');
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
