@@ -3,6 +3,7 @@ import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/api_service.dart';
 
 /// Player de vídeo seguro: busca uma URL de stream com token de curta
@@ -28,6 +29,8 @@ class _SecureVideoPlayerState extends State<SecureVideoPlayer> {
   bool _isLoading = true;
   String? _errorMessage;
   String? _expiresAt;
+  bool _isYoutube = false;
+  String? _youtubeId;
 
   final _dio = Dio();
   final _secureStorage = const FlutterSecureStorage();
@@ -64,6 +67,17 @@ class _SecureVideoPlayerState extends State<SecureVideoPlayer> {
       final streamUrl = data['stream_url'] as String;
       final expiresIn = data['expires_in'] as int;
       _expiresAt = data['expires_at'] as String?;
+
+      if (data['is_youtube'] == true) {
+        _isYoutube = true;
+        _youtubeId = data['youtube_id'] as String?;
+
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
 
       _videoController = VideoPlayerController.networkUrl(
         Uri.parse(streamUrl),
@@ -223,7 +237,42 @@ class _SecureVideoPlayerState extends State<SecureVideoPlayer> {
                             ),
                           ),
                         )
-                      : Chewie(controller: _chewieController!),
+                      : _isYoutube
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.smart_display_outlined, color: Colors.white, size: 56),
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      'Este vídeo está hospedado no YouTube',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.white, fontSize: 14),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    ElevatedButton.icon(
+                                      onPressed: () async {
+                                        if (_youtubeId == null) return;
+                                        final uri = Uri.parse('https://www.youtube.com/watch?v=$_youtubeId');
+                                        if (await canLaunchUrl(uri)) {
+                                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                        }
+                                      },
+                                      icon: const Icon(Icons.play_circle_outline),
+                                      label: const Text('Assistir no YouTube'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFDC2626),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : Chewie(controller: _chewieController!),
             ),
           ),
           Container(

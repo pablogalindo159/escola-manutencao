@@ -85,6 +85,8 @@ class VideoStreamController extends Controller
                 'video_title' => $video->title,
                 'video_duration' => $video->duration_seconds,
                 'quality' => $video->quality,
+                'is_youtube' => $video->youtube_id !== null,
+                'youtube_id' => $video->youtube_id,
             ],
         ]);
     }
