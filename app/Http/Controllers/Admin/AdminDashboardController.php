@@ -101,9 +101,9 @@ class AdminDashboardController extends Controller
             'description' => 'required|string',
             'category' => 'required|string',
             'level' => 'required|in:beginner,intermediate,advanced',
-            'duration_hours' => 'required|integer|min:1',
+            'duration_minutes' => 'required|integer|min:1',
             'price' => 'required|numeric|min:0',
-            'is_active' => 'boolean',
+            'status' => 'required|in:draft,published,archived',
         ]);
 
         $course->update($validated);
