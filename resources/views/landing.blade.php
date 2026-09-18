@@ -14,7 +14,7 @@
                     <a href="#cursos" class="text-gray-700 hover:text-blue-600">Cursos</a>
                     <a href="#sobre" class="text-gray-700 hover:text-blue-600">Sobre</a>
                     <a href="#contato" class="text-gray-700 hover:text-blue-600">Contato</a>
-                    <a href="{{ route('login') }}" class="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">Login</a>
+                    <a href="#" class="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">Login</a>
                 </div>
             </div>
         </div>
@@ -98,7 +98,7 @@
                     
                     <div class="border-t pt-4 flex justify-between items-center">
                         <span class="text-2xl font-bold text-blue-600">R$ {{ number_format($course['price'], 2, ',', '.') }}</span>
-                        <a href="{{ route('courses.detail', $course['id']) }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition">
+                        <a href="#" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition">
                             Saiba Mais
                         </a>
                     </div>

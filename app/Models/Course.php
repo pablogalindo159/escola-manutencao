@@ -47,8 +47,15 @@ class Course extends Model
 
     public function subscribers()
     {
-        return $this->belongsToMany(User::class, 'user_subscriptions')
+        return $this->belongsToMany(User::class, 'subscriptions')
             ->withPivot('expires_at', 'status')
+            ->withTimestamps();
+    }
+
+    public function students()
+    {
+        return $this->belongsToMany(User::class, 'subscriptions')
+            ->withPivot('expires_at', 'status', 'type')
             ->withTimestamps();
     }
 
@@ -112,7 +119,7 @@ class Course extends Model
     public function getStudentCount()
     {
         return $this->subscribers()
-            ->where('user_subscriptions.status', 'active')
+            ->where('subscriptions.status', 'active')
             ->count();
     }
 

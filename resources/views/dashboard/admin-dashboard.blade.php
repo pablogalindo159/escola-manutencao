@@ -107,7 +107,7 @@
                             <div class="w-full bg-gray-200 rounded-full h-2">
                                 <div 
                                     class="bg-blue-600 h-2 rounded-full" 
-                                    style="width: {{ ($method->total / $revenue_by_method->sum('total') * 100) }}%"
+                                    style="width: {{ $revenue_by_method->sum('total') > 0 ? ($method->total / $revenue_by_method->sum('total') * 100) : 0 }}%"
                                 ></div>
                             </div>
                         </div>
@@ -122,7 +122,7 @@
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-semibold text-gray-900">Cursos Populares</h3>
-                    <a href="{{ route('admin.courses') }}" class="text-blue-600 text-sm hover:text-blue-700">Ver Tudo →</a>
+                    <a href="#" class="text-blue-600 text-sm hover:text-blue-700">Ver Tudo →</a>
                 </div>
                 <div class="space-y-4">
                     @foreach($popular_courses as $course)
@@ -131,7 +131,7 @@
                                 <p class="font-medium text-gray-900">{{ $course->title }}</p>
                                 <p class="text-sm text-gray-600">{{ $course->students_count }} alunos inscritos</p>
                             </div>
-                            <a href="{{ route('admin.courses.edit', $course) }}" class="text-blue-600 hover:text-blue-700">
+                            <a href="#" class="text-blue-600 hover:text-blue-700">
                                 Editar →
                             </a>
                         </div>
@@ -143,7 +143,7 @@
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-semibold text-gray-900">Últimas Transações</h3>
-                    <a href="{{ route('admin.payments') }}" class="text-blue-600 text-sm hover:text-blue-700">Ver Tudo →</a>
+                    <a href="#" class="text-blue-600 text-sm hover:text-blue-700">Ver Tudo →</a>
                 </div>
                 <div class="space-y-2">
                     @foreach($recent_payments as $payment)

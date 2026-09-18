@@ -27,7 +27,7 @@ class AdminDashboardController extends Controller
             'total_revenue' => Payment::where('status', 'completed')
                 ->sum('amount'),
             'completion_rate' => $this->getCompletionRate(),
-            'active_students' => User::where('last_login', '>', now()->subDays(7))->count(),
+            'active_students' => User::where('last_login_at', '>', now()->subDays(7))->count(),
         ];
 
         // Inscrições últimos 7 dias
@@ -55,7 +55,7 @@ class AdminDashboardController extends Controller
         // Taxa de retenção
         $retention_rate = $this->getRetentionRate();
 
-        return view('admin.dashboard', [
+        return view('dashboard.admin-dashboard', [
             'metrics' => $metrics,
             'inscriptions_7d' => $inscriptions_7d,
             'popular_courses' => $popular_courses,
@@ -223,7 +223,7 @@ class AdminDashboardController extends Controller
 
     private function getRetentionRate()
     {
-        $active_last_month = User::where('last_login', '>', now()->subDays(30))->count();
+        $active_last_month = User::where('last_login_at', '>', now()->subDays(30))->count();
         $total_users = User::count();
 
         return $total_users > 0 ? round(($active_last_month / $total_users) * 100, 2) : 0;
@@ -244,7 +244,7 @@ class AdminDashboardController extends Controller
 
     private function getChurnRate($days)
     {
-        $inactive = User::where('last_login', '<', now()->subDays(30))->count();
+        $inactive = User::where('last_login_at', '<', now()->subDays(30))->count();
         $total = User::count();
 
         return $total > 0 ? round(($inactive / $total) * 100, 2) : 0;
