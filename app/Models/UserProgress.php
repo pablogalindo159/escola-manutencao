@@ -43,7 +43,7 @@ class UserProgress extends Model
 
     public function video()
     {
-        return $this->belongsTo(Video::class)->nullable();
+        return $this->belongsTo(Video::class);
     }
 
     // Scopes

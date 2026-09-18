@@ -14,7 +14,8 @@ class WebAuthController extends Controller
     public function showLogin()
     {
         if (Auth::check()) {
-            return redirect()->route('dashboard');
+            $user = Auth::user();
+            return redirect(in_array($user->role, ['admin', 'instructor']) ? route('dashboard') : route('student.dashboard'));
         }
 
         return view('auth.login');
@@ -30,7 +31,12 @@ class WebAuthController extends Controller
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            return redirect()->intended(route('dashboard'));
+            $user = Auth::user();
+            $homeRoute = in_array($user->role, ['admin', 'instructor'])
+                ? route('dashboard')
+                : route('student.dashboard');
+
+            return redirect()->intended($homeRoute);
         }
 
         return back()
@@ -59,7 +65,7 @@ class WebAuthController extends Controller
 
     public function register(RegisterRequest $request)
     {
-        User::create([
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
@@ -69,9 +75,10 @@ class WebAuthController extends Controller
             'status' => 'active',
         ]);
 
-        // Não faz login automático aqui: o site (web) só tem área de admin.
-        // O aluno usa o app pra acessar os cursos.
-        return redirect()->route('login')
-            ->with('success', 'Conta criada com sucesso! Baixe o aplicativo Escola da Manutenção e faça login por lá para acessar seus cursos.');
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect()->route('student.dashboard')
+            ->with('success', 'Conta criada com sucesso! Bem-vindo(a) à Escola da Manutenção.');
     }
 }

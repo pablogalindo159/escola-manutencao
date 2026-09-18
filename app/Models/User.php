@@ -55,7 +55,8 @@ class User extends Authenticatable implements JWTSubject
     // Relationships
     public function courses()
     {
-        return $this->belongsToMany(Course::class, 'user_subscriptions')
+        return $this->belongsToMany(Course::class, 'subscriptions')
+            ->withPivot('status', 'expires_at', 'type')
             ->withTimestamps();
     }
 

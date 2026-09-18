@@ -6,6 +6,11 @@ use App\Http\Controllers\Admin\LiveStreamController as AdminLiveStreamController
 use App\Http\Controllers\Admin\VideoController as AdminVideoController;
 use App\Http\Controllers\Web\WebAuthController;
 use App\Http\Controllers\Web\CourseController;
+use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
+use App\Http\Controllers\Student\CourseController as StudentCourseController;
+use App\Http\Controllers\Student\VideoController as StudentVideoController;
+use App\Http\Controllers\Student\CommunityController as StudentCommunityController;
+use App\Http\Controllers\Student\ProfileController as StudentProfileController;
 use App\Models\Course;
 use App\Models\LiveStream;
 
@@ -63,6 +68,28 @@ Route::get('/cursos/{course}', [CourseController::class, 'show'])->name('courses
 Route::get('/live-streams/{liveStream}', function (LiveStream $liveStream) {
     return view('live-streams.show', ['stream' => $liveStream]);
 })->name('live-streams.show');
+
+Route::middleware('auth')->prefix('minha-area')->name('student.')->group(function () {
+    Route::get('/', [StudentDashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/cursos/{course}', [StudentCourseController::class, 'show'])->name('courses.show');
+
+    Route::get('/videos/{video}', [StudentVideoController::class, 'watch'])->name('videos.watch');
+    Route::get('/videos/{video}/stream', [StudentVideoController::class, 'stream'])->name('videos.stream');
+    Route::post('/videos/{video}/concluir', [StudentVideoController::class, 'markComplete'])->name('videos.complete');
+
+    Route::get('/comunidade', [StudentCommunityController::class, 'index'])->name('community.index');
+    Route::get('/comunidade/novo', [StudentCommunityController::class, 'create'])->name('community.create');
+    Route::post('/comunidade', [StudentCommunityController::class, 'store'])->name('community.store');
+    Route::get('/comunidade/{post}', [StudentCommunityController::class, 'show'])->name('community.show');
+    Route::post('/comunidade/{post}/comentarios', [StudentCommunityController::class, 'comment'])->name('community.comment');
+    Route::post('/comunidade/{post}/curtir', [StudentCommunityController::class, 'like'])->name('community.like');
+    Route::delete('/comunidade/{post}/curtir', [StudentCommunityController::class, 'unlike'])->name('community.unlike');
+
+    Route::get('/perfil', [StudentProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/perfil', [StudentProfileController::class, 'update'])->name('profile.update');
+    Route::put('/perfil/senha', [StudentProfileController::class, 'updatePassword'])->name('profile.password');
+});
 
 Route::middleware(['auth', 'admin.web'])->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
