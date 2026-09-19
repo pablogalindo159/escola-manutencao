@@ -5,7 +5,7 @@
 @section('content')
 <a href="{{ route('student.courses.show', $video->course_id) }}" class="text-blue-600 hover:underline text-sm mb-4 inline-block">← {{ $video->course->title }}</a>
 
-<div class="bg-black rounded-xl overflow-hidden mb-4" style="aspect-ratio: 16/9;">
+<div class="bg-black rounded-xl overflow-hidden mb-4 relative" style="aspect-ratio: 16/9;">
     @if ($video->youtube_id)
         <iframe
             class="w-full h-full"
@@ -15,6 +15,11 @@
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen
         ></iframe>
+        {{-- Bloqueia o clique no título/avatar do canal (área onde o
+             YouTube leva o aluno pra fora do site) sem esconder nada
+             visualmente e sem atrapalhar o play, a barra de progresso,
+             tela cheia, volume ou CC, que ficam fora dessa área --}}
+        <div class="absolute top-0 left-0" style="width: 65%; height: 20%; z-index: 10; cursor: default;"></div>
     @else
         <video
             controls
