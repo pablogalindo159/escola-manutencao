@@ -31,42 +31,6 @@ jobs:
         working-directory: flutter_app
         run: flutter create --platforms=android --org com.escoladamanutencao .
 
-      - name: Permitir conexão HTTP com a VPS (sem SSL ainda)
-        working-directory: flutter_app
-        run: |
-          set -e
-          MANIFEST=android/app/src/main/AndroidManifest.xml
-
-          mkdir -p android/app/src/main/res/xml
-          cat > android/app/src/main/res/xml/network_security_config.xml << 'XMLEOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <network-security-config>
-              <base-config cleartextTrafficPermitted="true" />
-          </network-security-config>
-          XMLEOF
-
-          python3 - << 'PYEOF'
-          path = "android/app/src/main/AndroidManifest.xml"
-          content = open(path).read()
-          assert "<application" in content, "Tag <application> nao encontrada no manifest"
-          content = content.replace(
-              "<application",
-              '<application android:usesCleartextTraffic="true" android:networkSecurityConfig="@xml/network_security_config"',
-              1,
-          )
-          open(path, "w").write(content)
-          PYEOF
-
-          echo "===== AndroidManifest.xml final ====="
-          cat "$MANIFEST"
-          echo "======================================"
-
-          if ! grep -q 'usesCleartextTraffic="true"' "$MANIFEST"; then
-            echo "ERRO: nao conseguiu aplicar usesCleartextTraffic no AndroidManifest.xml"
-            exit 1
-          fi
-          echo "OK: cleartext HTTP liberado no manifest"
-
       - name: Instalar dependências
         working-directory: flutter_app
         run: flutter pub get
@@ -78,25 +42,6 @@ jobs:
       - name: Compilar APK (release)
         working-directory: flutter_app
         run: flutter build apk --release
-
-      - name: Verificar configuração de rede no APK final
-        working-directory: flutter_app
-        run: |
-          set -e
-          APK=build/app/outputs/flutter-apk/app-release.apk
-          AAPT=$(find $ANDROID_HOME -name "aapt" -type f | sort -r | head -1)
-
-          echo "Usando aapt: $AAPT"
-          echo "===== Trecho do manifest DENTRO do APK compilado ====="
-          "$AAPT" dump xmltree "$APK" AndroidManifest.xml | grep -i -A 2 -B 2 "cleartext\|networkSecurityConfig" || true
-          echo "========================================================"
-
-          if ! "$AAPT" dump xmltree "$APK" AndroidManifest.xml | grep -qi "usesCleartextTraffic"; then
-            echo "ERRO CRITICO: usesCleartextTraffic NAO esta no manifest final do APK compilado!"
-            echo "(mesmo estando no arquivo fonte antes do build - algo no Gradle removeu)"
-            exit 1
-          fi
-          echo "OK CONFIRMADO: cleartext HTTP esta liberado no APK final."
 
       - name: Enviar APK como artefato do build
         uses: actions/upload-artifact@v4
