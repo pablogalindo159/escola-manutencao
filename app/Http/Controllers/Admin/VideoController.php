@@ -10,6 +10,43 @@ use Illuminate\Http\Request;
 class VideoController extends Controller
 {
     /**
+     * Regex que identifica se uma URL é do YouTube (aceita watch?v=,
+     * youtu.be/, embed/ e live/).
+     */
+    private const YOUTUBE_URL_PATTERN = '/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/';
+
+    /**
+     * Verifica se um link do YouTube permite ser incorporado (embed) via
+     * oEmbed. O YouTube retorna 401 Unauthorized no oEmbed exatamente
+     * quando o dono do vídeo desmarcou "Permitir incorporação" - nesse
+     * caso o vídeo nunca vai tocar dentro do site/app, só abre externo.
+     * Retorna uma mensagem de aviso se detectar o problema, ou null se
+     * estiver tudo certo (ou não for um link do YouTube).
+     */
+    private function checkYoutubeEmbeddable(string $url): ?string
+    {
+        if (!preg_match(self::YOUTUBE_URL_PATTERN, $url)) {
+            return null;
+        }
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(10)
+                ->get('https://www.youtube.com/oembed', [
+                    'url' => $url,
+                    'format' => 'json',
+                ]);
+
+            if ($response->status() === 401) {
+                return '⚠️ Esse vídeo do YouTube está com "Permitir incorporação" desativado pelo dono. Ele NÃO vai tocar dentro do site/app - vai só mostrar um botão levando pro YouTube. Troque o link ou peça pro dono do vídeo ativar a incorporação.';
+            }
+        } catch (\Exception $e) {
+            // Falha ao checar não deve travar o salvamento - segue sem aviso
+        }
+
+        return null;
+    }
+
+    /**
      * Detecta automaticamente titulo/duracao/thumbnail a partir da URL
      * (AJAX - chamado pelo botao "Detectar dados" no formulario)
      */
@@ -22,7 +59,7 @@ class VideoController extends Controller
         $url = $validated['video_url'];
 
         // YouTube: usa oEmbed publico do proprio YouTube (sem precisar de chave de API)
-        if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/', $url)) {
+        if (preg_match(self::YOUTUBE_URL_PATTERN, $url)) {
             try {
                 $response = \Illuminate\Support\Facades\Http::timeout(10)
                     ->get('https://www.youtube.com/oembed', [
@@ -40,6 +77,13 @@ class VideoController extends Controller
                         'duration_seconds' => null,
                         'note' => 'A duração de vídeos do YouTube não pode ser detectada automaticamente (precisaria de uma chave de API do Google). Preencha manualmente.',
                     ]);
+                }
+
+                if ($response->status() === 401) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Esse vídeo está com "Permitir incorporação" desativado pelo dono - ele não vai tocar dentro do site/app. Use outro link.',
+                    ], 422);
                 }
             } catch (\Exception $e) {
                 // segue pro erro generico abaixo
@@ -130,8 +174,12 @@ class VideoController extends Controller
 
         Video::create($validated);
 
-        return redirect()->route('admin.courses.edit', $course)
+        $warning = $this->checkYoutubeEmbeddable($validated['video_url']);
+
+        $redirect = redirect()->route('admin.courses.edit', $course)
             ->with('success', 'Vídeo adicionado com sucesso! Publique-o quando estiver pronto.');
+
+        return $warning ? $redirect->with('warning', $warning) : $redirect;
     }
 
     /**
@@ -164,8 +212,12 @@ class VideoController extends Controller
 
         $video->update($validated);
 
-        return redirect()->route('admin.courses.edit', $course)
+        $warning = $this->checkYoutubeEmbeddable($validated['video_url']);
+
+        $redirect = redirect()->route('admin.courses.edit', $course)
             ->with('success', 'Vídeo atualizado com sucesso!');
+
+        return $warning ? $redirect->with('warning', $warning) : $redirect;
     }
 
     /**
