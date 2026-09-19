@@ -16,6 +16,7 @@
                     <a href="#contato" class="text-gray-700 hover:text-blue-600">Contato</a>
                     <a href="{{ route('login') }}" class="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">Login</a>
                 </div>
+                <a href="{{ route('login') }}" class="md:hidden px-3 py-1.5 text-sm font-medium text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">Login</a>
             </div>
         </div>
     </nav>
