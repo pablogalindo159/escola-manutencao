@@ -12,9 +12,11 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        $courses = $user->courses()->with(['videos' => function ($q) {
-            $q->where('status', 'published');
-        }])->get();
+        $courses = $user->courses()
+            ->where('courses.status', 'published')
+            ->with(['videos' => function ($q) {
+                $q->where('status', 'published');
+            }])->get();
 
         $progressByCourse = [];
         foreach ($courses as $course) {

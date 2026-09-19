@@ -84,6 +84,13 @@ class CourseController extends Controller
             $progressPercentage = 0;
             $isStaff = $user && in_array($user->role, ['admin', 'instructor']);
 
+            if (!$isStaff && $course->status !== 'published') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Curso não encontrado',
+                ], 404);
+            }
+
             $visibleVideos = $isStaff
                 ? $course->videos
                 : $course->videos->where('status', 'published')->values();
@@ -165,6 +172,7 @@ class CourseController extends Controller
             $perPage = $request->query('per_page', 20);
 
             $courses = $user->courses()
+                ->where('courses.status', 'published')
                 ->with('instructor:id,name,avatar_url')
                 ->with('progress')
                 ->paginate($perPage);

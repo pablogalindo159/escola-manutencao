@@ -15,7 +15,8 @@ class CourseController extends Controller
         $user = $request->user();
         $isStaff = in_array($user->role, ['admin', 'instructor']);
         $isSubscribed = $user->courses()->where('course_id', $course->id)->exists();
-        $hasAccess = $isStaff || $course->type === 'free' || $isSubscribed;
+        $isPublished = $course->status === 'published';
+        $hasAccess = $isStaff || ($isPublished && ($course->type === 'free' || $isSubscribed));
 
         if (!$hasAccess) {
             abort(403, 'Você precisa se inscrever neste curso para acessá-lo.');
