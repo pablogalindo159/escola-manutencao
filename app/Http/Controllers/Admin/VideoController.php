@@ -22,7 +22,7 @@ class VideoController extends Controller
         $url = $validated['video_url'];
 
         // YouTube: usa oEmbed publico do proprio YouTube (sem precisar de chave de API)
-        if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/', $url)) {
+        if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/', $url)) {
             try {
                 $response = \Illuminate\Support\Facades\Http::timeout(10)
                     ->get('https://www.youtube.com/oembed', [

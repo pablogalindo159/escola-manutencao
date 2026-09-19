@@ -78,7 +78,9 @@ class Video extends Model
 
     /**
      * Extrai o ID do vídeo se video_url for um link do YouTube
-     * (aceita watch?v=, youtu.be/ e embed/). Retorna null se não for.
+     * (aceita watch?v=, youtu.be/, embed/ e live/ - esse último é o
+     * formato usado por vídeos que foram ao vivo/premieres). Retorna
+     * null se não for.
      */
     public function getYoutubeIdAttribute(): ?string
     {
@@ -86,7 +88,7 @@ class Video extends Model
             return null;
         }
 
-        if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/', $this->video_url, $matches)) {
+        if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/', $this->video_url, $matches)) {
             return $matches[1];
         }
 

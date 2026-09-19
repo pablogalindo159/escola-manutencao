@@ -210,10 +210,11 @@ class Video {
 
   /// ID do vídeo no YouTube, se video_url for um link do YouTube (mesma
   /// regex usada no backend, calculado aqui pra saber embutir o player
-  /// sem precisar de uma chamada extra à API).
+  /// sem precisar de uma chamada extra à API). Aceita watch?v=, youtu.be/,
+  /// embed/ e live/ (vídeos que foram ao vivo/premieres).
   String? get youtubeId {
     final match = RegExp(
-      r'(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})',
+      r'(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/live\/)([a-zA-Z0-9_-]{11})',
     ).firstMatch(videoUrl);
     return match?.group(1);
   }
