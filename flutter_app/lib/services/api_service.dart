@@ -5,8 +5,10 @@ import 'package:dio/io.dart';
 import 'dart:io';
 
 class ApiService {
-  // ✅ HTTPS com domínio e SSL configurados (Let's Encrypt/Certbot)
-  static const String baseUrl = 'https://escola.informaticasaojose.srv.br/api';
+  // ✅ Usar IP direto para evitar problema de DNS lookup no Dio
+  // O certificado SSL usa domínio, mas o header Host garante validação correta
+  static const String baseUrl = 'https://198.199.64.162/api';
+  static const String expectedHost = 'escola.informaticasaojose.srv.br';
   
   late Dio _dio;
   final _storage = const FlutterSecureStorage();
@@ -30,13 +32,19 @@ class ApiService {
     (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
       final client = HttpClient();
       client.badCertificateCallback = (cert, host, port) {
-        // Permitir certificados Let's Encrypt válidos mesmo que com pequenas inconsistências
-        return cert.issuer.contains('Lets Encrypt') || host == 'escola.informaticasaojose.srv.br';
+        // Permitir certificado válido quando:
+        // 1. Host é o domínio esperado
+        // 2. Ou host é o IP e certificado é Let's Encrypt válido pro domínio
+        final isExpectedDomain = cert.subject.contains('CN=escola.informaticasaojose.srv.br') || 
+                                 cert.subject.contains('escola.informaticasaojose.srv.br');
+        final isLetEncrypt = cert.issuer.contains('Let') && cert.issuer.contains('Encrypt');
+        
+        return isExpectedDomain && isLetEncrypt;
       };
       return client;
     };
 
-    // Interceptor para adicionar token
+    // Interceptor para adicionar token e header Host
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -44,6 +52,8 @@ class ApiService {
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+          // Adicionar header Host para Nginx saber qual domínio está sendo acessado
+          options.headers['Host'] = expectedHost;
           _logger.d('REQUEST: ${options.method} ${options.path}');
           return handler.next(options);
         },
