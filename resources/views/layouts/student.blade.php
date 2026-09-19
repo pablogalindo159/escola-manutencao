@@ -17,8 +17,8 @@
 
                 {{-- Desktop: todos os links numa linha só, cabe tranquilo --}}
                 <div class="hidden md:flex items-center gap-6 text-sm">
-                    <a href="{{ route('student.dashboard') }}" class="text-gray-700 hover:text-blue-600 font-medium">Meus Cursos</a>
                     <a href="{{ route('student.courses.index') }}" class="text-gray-700 hover:text-blue-600 font-medium">Todos os Cursos</a>
+                    <a href="{{ route('student.dashboard') }}" class="text-gray-700 hover:text-blue-600 font-medium">Meus Cursos</a>
                     <a href="{{ route('student.community.index') }}" class="text-gray-700 hover:text-blue-600 font-medium">Comunidade</a>
                     <a href="{{ route('student.profile.edit') }}" class="text-gray-700 hover:text-blue-600 font-medium">Perfil</a>
                     <form method="POST" action="{{ route('logout') }}">
@@ -74,13 +74,13 @@
     {{-- Mobile: menu inferior fixo com os destinos principais --}}
     <nav class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 z-30">
         <div class="grid grid-cols-4">
-            <a href="{{ route('student.dashboard') }}" class="flex flex-col items-center justify-center gap-0.5 py-2.5 {{ request()->routeIs('student.dashboard') ? 'text-blue-600' : 'text-gray-500' }}">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg>
-                <span class="text-[10px] font-medium">Meus Cursos</span>
-            </a>
             <a href="{{ route('student.courses.index') }}" class="flex flex-col items-center justify-center gap-0.5 py-2.5 {{ request()->routeIs('student.courses.index') ? 'text-blue-600' : 'text-gray-500' }}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                 <span class="text-[10px] font-medium">Todos</span>
+            </a>
+            <a href="{{ route('student.dashboard') }}" class="flex flex-col items-center justify-center gap-0.5 py-2.5 {{ request()->routeIs('student.dashboard') ? 'text-blue-600' : 'text-gray-500' }}">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg>
+                <span class="text-[10px] font-medium">Meus Cursos</span>
             </a>
             <a href="{{ route('student.community.index') }}" class="flex flex-col items-center justify-center gap-0.5 py-2.5 {{ request()->routeIs('student.community.*') ? 'text-blue-600' : 'text-gray-500' }}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
