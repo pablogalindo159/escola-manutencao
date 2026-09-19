@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
@@ -13,10 +14,20 @@ class SecureVideoPlayer extends StatefulWidget {
   final String videoId;
   final String videoTitle;
 
+  /// De onde retomar a reprodução (segundos). 0 = começar do início.
+  final int initialPositionSeconds;
+
+  /// Chamado periodicamente (e ao sair da tela) com a posição atual em
+  /// segundos, pra tela pai salvar o progresso. Não é chamado para
+  /// vídeos do YouTube (tocam fora do app, sem como rastrear).
+  final void Function(int watchedSeconds)? onProgress;
+
   const SecureVideoPlayer({
     Key? key,
     required this.videoId,
     required this.videoTitle,
+    this.initialPositionSeconds = 0,
+    this.onProgress,
   }) : super(key: key);
 
   @override
@@ -31,6 +42,7 @@ class _SecureVideoPlayerState extends State<SecureVideoPlayer> {
   String? _expiresAt;
   bool _isYoutube = false;
   String? _youtubeId;
+  Timer? _progressTimer;
 
   final _dio = Dio();
   final _secureStorage = const FlutterSecureStorage();
@@ -86,6 +98,11 @@ class _SecureVideoPlayerState extends State<SecureVideoPlayer> {
 
       await _videoController!.initialize();
 
+      if (widget.initialPositionSeconds > 0 &&
+          widget.initialPositionSeconds < _videoController!.value.duration.inSeconds) {
+        await _videoController!.seekTo(Duration(seconds: widget.initialPositionSeconds));
+      }
+
       _chewieController = ChewieController(
         videoPlayerController: _videoController!,
         aspectRatio: _videoController!.value.aspectRatio,
@@ -93,6 +110,8 @@ class _SecureVideoPlayerState extends State<SecureVideoPlayer> {
         looping: false,
         showControls: true,
       );
+
+      _startProgressTimer();
 
       if (!mounted) return;
       setState(() {
@@ -103,6 +122,15 @@ class _SecureVideoPlayerState extends State<SecureVideoPlayer> {
     } catch (e) {
       _setError('Erro ao carregar vídeo: $e');
     }
+  }
+
+  void _startProgressTimer() {
+    _progressTimer?.cancel();
+    _progressTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      final controller = _videoController;
+      if (controller == null || !controller.value.isInitialized) return;
+      widget.onProgress?.call(controller.value.position.inSeconds);
+    });
   }
 
   void _startExpirationTimer(int expiresIn) {
@@ -185,11 +213,6 @@ class _SecureVideoPlayerState extends State<SecureVideoPlayer> {
     });
   }
 
-  /// Se o acesso expira em breve/já expirou (usado pela tela pai pra
-  /// mostrar o aviso "Acesso válido por tempo limitado" fora da área do
-  /// player, sem roubar espaço vertical do vídeo em si).
-  bool get hasExpiration => _expiresAt != null;
-
   @override
   Widget build(BuildContext context) {
     // Importante: este widget ocupa 100% do espaço que a tela pai der a
@@ -264,6 +287,12 @@ class _SecureVideoPlayerState extends State<SecureVideoPlayer> {
 
   @override
   void dispose() {
+    _progressTimer?.cancel();
+    // Salva a posição final ao sair da tela (best effort)
+    final controller = _videoController;
+    if (controller != null && controller.value.isInitialized) {
+      widget.onProgress?.call(controller.value.position.inSeconds);
+    }
     _chewieController?.dispose();
     _videoController?.dispose();
     super.dispose();

@@ -25,6 +25,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   Future<void> _loadCourse() async {
     final provider = context.read<CourseProvider>();
     await provider.selectCourse(widget.courseId);
+    if (provider.selectedCourse?.isSubscribed == true && mounted) {
+      // Carrega progresso só se o usuário já está inscrito (endpoint exige)
+      await context.read<VideoProgressProvider>().loadCourseProgress(widget.courseId);
+    }
   }
 
   Future<void> _subscribeToCourse() async {
@@ -279,6 +283,12 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                           itemCount: course.videos!.length,
                           itemBuilder: (context, index) {
                             final video = course.videos![index];
+                            final progressProvider =
+                                context.watch<VideoProgressProvider>();
+                            final isCompleted =
+                                progressProvider.isVideoCompleted(video.id);
+                            final isStarted =
+                                progressProvider.isVideoStarted(video.id);
                             return InkWell(
                               borderRadius: BorderRadius.circular(8),
                               onTap: () {
@@ -340,13 +350,38 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
-                                        Text(
-                                          video.durationFormatted,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                            fontFamily: 'Inter',
-                                          ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              video.durationFormatted,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                                fontFamily: 'Inter',
+                                              ),
+                                            ),
+                                            if (isCompleted) ...[
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                '· Concluído',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.green[700],
+                                                  fontFamily: 'Inter',
+                                                ),
+                                              ),
+                                            ] else if (isStarted) ...[
+                                              const SizedBox(width: 6),
+                                              const Text(
+                                                '· Continuar',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Color(0xFF0066FF),
+                                                  fontFamily: 'Inter',
+                                                ),
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -356,6 +391,12 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                                       Icons.lock_outline,
                                       color: Colors.grey[400],
                                       size: 18,
+                                    )
+                                  else if (isCompleted)
+                                    Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green[600],
+                                      size: 20,
                                     ),
                                 ],
                               ),

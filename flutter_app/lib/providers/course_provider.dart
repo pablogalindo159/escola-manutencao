@@ -138,6 +138,7 @@ class VideoProgressProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
 
   Map<int, double> _videoProgress = {}; // videoId -> progress %
+  Map<int, int> _videoWatchedSeconds = {}; // videoId -> segundos já assistidos
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -147,31 +148,27 @@ class VideoProgressProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   double getProgress(int videoId) => _videoProgress[videoId] ?? 0.0;
+  int getWatchedSeconds(int videoId) => _videoWatchedSeconds[videoId] ?? 0;
   bool isVideoCompleted(int videoId) => (_videoProgress[videoId] ?? 0.0) >= 80.0;
+  bool isVideoStarted(int videoId) => (_videoProgress[videoId] ?? 0.0) > 0.0;
 
   /// Atualizar progresso do vídeo
   Future<void> updateProgress({
     required int videoId,
     required int watchedSeconds,
   }) async {
-    _isLoading = true;
-    _errorMessage = null;
-
     try {
       await _apiService.updateVideoProgress(
         videoId: videoId,
         watchedSeconds: watchedSeconds,
       );
 
-      // Atualizar progresso local
-      // Será recalculado na próxima busca da API
-      
-      _isLoading = false;
+      // Atualiza local pra refletir na hora (sem esperar recarregar da API)
+      _videoWatchedSeconds[videoId] = watchedSeconds;
+      notifyListeners();
     } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
+      // Silencioso: progresso é "best effort", não deve travar o player
     }
-    notifyListeners();
   }
 
   /// Carregar progresso do curso
@@ -184,9 +181,11 @@ class VideoProgressProvider with ChangeNotifier {
       final response = await _apiService.getCourseProgress(courseId);
       
       _videoProgress.clear();
+      _videoWatchedSeconds.clear();
       for (var video in response['videos']) {
-        _videoProgress[video['video_id']] = 
-            (video['progress_percentage'] as num).toDouble();
+        final videoId = video['video_id'] as int;
+        _videoProgress[videoId] = (video['progress_percentage'] as num).toDouble();
+        _videoWatchedSeconds[videoId] = (video['watched_seconds'] as num?)?.toInt() ?? 0;
       }
       
       _isLoading = false;
@@ -200,6 +199,7 @@ class VideoProgressProvider with ChangeNotifier {
   /// Limpar dados
   void clear() {
     _videoProgress.clear();
+    _videoWatchedSeconds.clear();
     _errorMessage = null;
     notifyListeners();
   }

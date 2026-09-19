@@ -20,13 +20,26 @@ class VideoPlayerScreen extends StatefulWidget {
 
 class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   bool _isInitialized = false;
+  bool _progressLoaded = false;
   String? _errorMessage;
   Video? _video;
+  int _restartCounter = 0;
 
   @override
   void initState() {
     super.initState();
     _loadVideoInfo();
+    _loadProgress();
+  }
+
+  Future<void> _loadProgress() async {
+    final progressProvider = context.read<VideoProgressProvider>();
+    await progressProvider.loadCourseProgress(widget.courseId);
+    if (mounted) {
+      setState(() {
+        _progressLoaded = true;
+      });
+    }
   }
 
   Future<void> _loadVideoInfo() async {
@@ -51,6 +64,32 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     } catch (e) {
       setState(() {
         _errorMessage = 'Erro ao carregar vídeo: $e';
+      });
+    }
+  }
+
+  Future<void> _confirmRestart() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reiniciar aula?'),
+        content: const Text('O vídeo vai voltar pro início.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Reiniciar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() {
+        _restartCounter++;
       });
     }
   }
@@ -95,7 +134,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       );
     }
 
-    if (!_isInitialized) {
+    if (!_isInitialized || !_progressLoaded) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Carregando vídeo...'),
@@ -111,6 +150,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         title: const Text('Assista a aula'),
         elevation: 0,
         backgroundColor: const Color(0xFF0066FF),
+        actions: [
+          IconButton(
+            onPressed: _confirmRestart,
+            icon: const Icon(Icons.replay),
+            tooltip: 'Reiniciar aula',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -120,13 +166,66 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             // Importante: o player ocupa a caixa 16:9 inteira - nenhum
             // título/aviso vai aqui dentro, senão o vídeo renderiza menor
             // do que devia (bug corrigido).
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: SecureVideoPlayer(
-                videoId: widget.videoId.toString(),
-                videoTitle: _video?.title ?? 'Aula',
-              ),
-            ),
+            Builder(builder: (context) {
+              final progressProvider = context.watch<VideoProgressProvider>();
+              final watched = _restartCounter > 0
+                  ? 0
+                  : progressProvider.getWatchedSeconds(widget.videoId);
+              return AspectRatio(
+                aspectRatio: 16 / 9,
+                child: SecureVideoPlayer(
+                  // Muda a key pra forçar recriação do player do zero ao reiniciar
+                  key: ValueKey('video-${widget.videoId}-restart-$_restartCounter'),
+                  videoId: widget.videoId.toString(),
+                  videoTitle: _video?.title ?? 'Aula',
+                  initialPositionSeconds: watched,
+                  onProgress: (seconds) {
+                    context.read<VideoProgressProvider>().updateProgress(
+                          videoId: widget.videoId,
+                          watchedSeconds: seconds,
+                        );
+                  },
+                ),
+              );
+            }),
+
+            // Aviso de "continuando de onde parou", se aplicável
+            Builder(builder: (context) {
+              final progressProvider = context.watch<VideoProgressProvider>();
+              final isCompleted = progressProvider.isVideoCompleted(widget.videoId);
+              final watched = progressProvider.getWatchedSeconds(widget.videoId);
+              if (_restartCounter > 0 || watched < 10) {
+                return const SizedBox.shrink();
+              }
+              final minutes = watched ~/ 60;
+              final seconds = watched % 60;
+              return Container(
+                width: double.infinity,
+                color: isCompleted ? Colors.green[50] : Colors.blue[50],
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  children: [
+                    Icon(
+                      isCompleted ? Icons.check_circle : Icons.play_circle_outline,
+                      size: 16,
+                      color: isCompleted ? Colors.green[700] : const Color(0xFF0066FF),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        isCompleted
+                            ? 'Você já concluiu esta aula'
+                            : 'Continuando de $minutes:${seconds.toString().padLeft(2, '0')}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isCompleted ? Colors.green[800] : const Color(0xFF0066FF),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
 
             // Aviso de proteção (fora da caixa do vídeo, não afeta o tamanho dele)
             Container(
