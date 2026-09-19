@@ -31,6 +31,20 @@ jobs:
         working-directory: flutter_app
         run: flutter create --platforms=android --org com.escoladamanutencao .
 
+      - name: Adicionar permissão INTERNET ao AndroidManifest.xml
+        working-directory: flutter_app
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if grep -q "android.permission.INTERNET" "$MANIFEST"; then
+            echo "✓ Permissão INTERNET já existe"
+          else
+            echo "✗ Adicionando permissão INTERNET..."
+            sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' "$MANIFEST"
+            echo "✓ Permissão INTERNET adicionada"
+          fi
+          echo "=== AndroidManifest.xml (primeiras 15 linhas) ==="
+          head -15 "$MANIFEST"
+
       - name: Instalar dependências
         working-directory: flutter_app
         run: flutter pub get
