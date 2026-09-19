@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/course_provider.dart';
+import '../video/video_player_screen.dart';
 
 class CourseDetailScreen extends StatefulWidget {
   final int courseId;
@@ -278,7 +279,29 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                           itemCount: course.videos!.length,
                           itemBuilder: (context, index) {
                             final video = course.videos![index];
-                            return Container(
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () {
+                                if (course.isSubscribed == true) {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => VideoPlayerScreen(
+                                        courseId: course.id,
+                                        videoId: video.id,
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Inscreva-se no curso para assistir às aulas',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Container(
                               margin: const EdgeInsets.only(bottom: 12),
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
@@ -318,7 +341,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                                       ],
                                     ),
                                   ),
+                                  if (course.isSubscribed != true)
+                                    Icon(
+                                      Icons.lock_outline,
+                                      color: Colors.grey[400],
+                                      size: 18,
+                                    ),
                                 ],
+                              ),
                               ),
                             );
                           },
