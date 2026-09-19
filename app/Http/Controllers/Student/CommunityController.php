@@ -13,7 +13,7 @@ class CommunityController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $courseIds = $user->courses()->pluck('courses.id');
+        $courseIds = $user->courses()->where('courses.status', 'published')->pluck('courses.id');
         $selectedCourseId = $request->query('course_id');
 
         $query = Post::whereIn('course_id', $courseIds)
@@ -28,7 +28,7 @@ class CommunityController extends Controller
         }
 
         $posts = $query->paginate(15)->withQueryString();
-        $courses = $user->courses;
+        $courses = $user->courses()->where('courses.status', 'published')->get();
 
         return view('student.community-index', [
             'posts' => $posts,
@@ -40,7 +40,7 @@ class CommunityController extends Controller
     public function create(Request $request)
     {
         $user = $request->user();
-        $courses = $user->courses;
+        $courses = $user->courses()->where('courses.status', 'published')->get();
 
         return view('student.community-form', [
             'courses' => $courses,
@@ -134,7 +134,10 @@ class CommunityController extends Controller
             return;
         }
 
-        $hasAccess = $user->courses()->where('course_id', $courseId)->exists();
+        $hasAccess = $user->courses()
+            ->where('courses.status', 'published')
+            ->where('course_id', $courseId)
+            ->exists();
 
         if (!$hasAccess) {
             abort(403, 'Você precisa estar inscrito no curso pra participar da comunidade.');
