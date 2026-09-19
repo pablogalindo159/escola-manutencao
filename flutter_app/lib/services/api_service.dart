@@ -3,9 +3,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
 
 class ApiService {
-  // TODO: trocar para https://escoladamanutencao.com.br/api quando o domínio
-  // e o SSL estiverem configurados. Por enquanto aponta pro IP da VPS.
-  static const String baseUrl = 'http://198.199.64.162/api';
+  // ✅ HTTPS com domínio e SSL configurados (Let's Encrypt/Certbot)
+  static const String baseUrl = 'https://escola.informaticasaojose.srv.br/api';
   
   late Dio _dio;
   final _storage = const FlutterSecureStorage();
