@@ -79,6 +79,25 @@ jobs:
         working-directory: flutter_app
         run: flutter build apk --release
 
+      - name: Verificar configuração de rede no APK final
+        working-directory: flutter_app
+        run: |
+          set -e
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          AAPT=$(find $ANDROID_HOME -name "aapt" -type f | sort -r | head -1)
+
+          echo "Usando aapt: $AAPT"
+          echo "===== Trecho do manifest DENTRO do APK compilado ====="
+          "$AAPT" dump xmltree "$APK" AndroidManifest.xml | grep -i -A 2 -B 2 "cleartext\|networkSecurityConfig" || true
+          echo "========================================================"
+
+          if ! "$AAPT" dump xmltree "$APK" AndroidManifest.xml | grep -qi "usesCleartextTraffic"; then
+            echo "ERRO CRITICO: usesCleartextTraffic NAO esta no manifest final do APK compilado!"
+            echo "(mesmo estando no arquivo fonte antes do build - algo no Gradle removeu)"
+            exit 1
+          fi
+          echo "OK CONFIRMADO: cleartext HTTP esta liberado no APK final."
+
       - name: Enviar APK como artefato do build
         uses: actions/upload-artifact@v4
         with:
