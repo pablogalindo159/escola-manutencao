@@ -45,6 +45,25 @@ jobs:
           echo "=== AndroidManifest.xml (primeiras 15 linhas) ==="
           head -15 "$MANIFEST"
 
+      - name: Adicionar <queries> ao AndroidManifest.xml (permite abrir YouTube/links externos)
+        working-directory: flutter_app
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if grep -q "<queries>" "$MANIFEST"; then
+            echo "✓ <queries> já existe"
+          else
+            echo "✗ Adicionando <queries>..."
+            sed -i '/<\/manifest>/i\    <queries>' "$MANIFEST"
+            sed -i '/<\/manifest>/i\        <intent>' "$MANIFEST"
+            sed -i '/<\/manifest>/i\            <action android:name="android.intent.action.VIEW" />' "$MANIFEST"
+            sed -i '/<\/manifest>/i\            <data android:scheme="https" />' "$MANIFEST"
+            sed -i '/<\/manifest>/i\        </intent>' "$MANIFEST"
+            sed -i '/<\/manifest>/i\    </queries>' "$MANIFEST"
+            echo "✓ <queries> adicionado (sem isso, canLaunchUrl sempre retorna falso no Android 11+ e o botão 'Assistir no YouTube' não abre nada)"
+          fi
+          echo "=== AndroidManifest.xml completo ==="
+          cat "$MANIFEST"
+
       - name: Instalar dependências
         working-directory: flutter_app
         run: flutter pub get

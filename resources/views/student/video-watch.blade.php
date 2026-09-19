@@ -22,6 +22,9 @@
             oncontextmenu="return false;"
             class="w-full h-full"
             poster="{{ $video->thumbnail_url }}"
+            playsinline
+            webkit-playsinline
+            x-webkit-airplay="allow"
         >
             <source src="{{ route('student.videos.stream', $video) }}" type="video/mp4">
             Seu navegador não suporta reprodução de vídeo.
