@@ -84,7 +84,7 @@ class CourseController extends Controller
             $progressPercentage = 0;
             $isStaff = $user && in_array($user->role, ['admin', 'instructor']);
 
-            if (!$isStaff && $course->status !== 'published') {
+            if (!$isStaff && $course->status === 'archived') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Curso não encontrado',
@@ -172,7 +172,7 @@ class CourseController extends Controller
             $perPage = $request->query('per_page', 20);
 
             $courses = $user->courses()
-                ->where('courses.status', 'published')
+                ->where('courses.status', '!=', 'archived')
                 ->with('instructor:id,name,avatar_url')
                 ->with('progress')
                 ->paginate($perPage);

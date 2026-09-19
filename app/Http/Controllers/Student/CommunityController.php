@@ -13,7 +13,7 @@ class CommunityController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $courseIds = $user->courses()->where('courses.status', 'published')->pluck('courses.id');
+        $courseIds = $user->courses()->where('courses.status', '!=', 'archived')->pluck('courses.id');
         $selectedCourseId = $request->query('course_id');
 
         $query = Post::whereIn('course_id', $courseIds)
@@ -28,7 +28,7 @@ class CommunityController extends Controller
         }
 
         $posts = $query->paginate(15)->withQueryString();
-        $courses = $user->courses()->where('courses.status', 'published')->get();
+        $courses = $user->courses()->where('courses.status', '!=', 'archived')->get();
 
         return view('student.community-index', [
             'posts' => $posts,
@@ -40,7 +40,7 @@ class CommunityController extends Controller
     public function create(Request $request)
     {
         $user = $request->user();
-        $courses = $user->courses()->where('courses.status', 'published')->get();
+        $courses = $user->courses()->where('courses.status', '!=', 'archived')->get();
 
         return view('student.community-form', [
             'courses' => $courses,
@@ -135,7 +135,7 @@ class CommunityController extends Controller
         }
 
         $hasAccess = $user->courses()
-            ->where('courses.status', 'published')
+            ->where('courses.status', '!=', 'archived')
             ->where('course_id', $courseId)
             ->exists();
 

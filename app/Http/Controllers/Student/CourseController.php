@@ -15,8 +15,13 @@ class CourseController extends Controller
         $user = $request->user();
         $isStaff = in_array($user->role, ['admin', 'instructor']);
         $isSubscribed = $user->courses()->where('course_id', $course->id)->exists();
-        $isPublished = $course->status === 'published';
-        $hasAccess = $isStaff || ($isPublished && ($course->type === 'free' || $isSubscribed));
+        // Quem já tem acesso (comprou/se inscreveu) não perde o curso só
+        // porque ele voltou pra rascunho pra edição - só "arquivado" tira
+        // o acesso de quem já tinha. Curso ainda em rascunho continua
+        // fora do alcance de quem nunca se inscreveu (mesmo se for grátis).
+        $hasAccess = $isStaff
+            || ($isSubscribed && $course->status !== 'archived')
+            || ($course->type === 'free' && $course->status === 'published');
 
         if (!$hasAccess) {
             abort(403, 'Você precisa se inscrever neste curso para acessá-lo.');
