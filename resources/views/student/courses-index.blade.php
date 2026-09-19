@@ -15,6 +15,13 @@
             @php $isSubscribed = in_array($course->id, $subscribedCourseIds); @endphp
             <a href="{{ $isSubscribed ? route('student.courses.show', $course) : route('courses.detail', $course) }}"
                class="bg-white rounded-xl shadow hover:shadow-md transition overflow-hidden">
+                <div class="h-36 bg-gray-100 flex items-center justify-center overflow-hidden">
+                    @if ($course->thumbnail_url)
+                        <img src="{{ $course->thumbnail_url }}" alt="{{ $course->title }}" class="w-full h-full object-cover">
+                    @else
+                        <span class="text-4xl">🔧</span>
+                    @endif
+                </div>
                 <div class="p-6">
                     <div class="flex items-center justify-between mb-3">
                         <span class="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">{{ $course->category ?? 'Curso' }}</span>
