@@ -29,7 +29,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   // Player do YouTube (embutido no app - nunca abre externamente)
   YoutubePlayerController? _youtubeController;
-  Timer? _youtubeProgressTimer;
+  StreamSubscription<Duration>? _youtubePositionSub;
 
   @override
   void initState() {
@@ -79,22 +79,20 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       final progressProvider = context.read<VideoProgressProvider>();
       final startAt = progressProvider.getWatchedSeconds(widget.videoId);
 
-      _youtubeController = YoutubePlayerController(
-        initialVideoId: youtubeId,
-        flags: YoutubePlayerFlags(
-          autoPlay: false,
-          startAt: startAt,
-        ),
+      _youtubeController = YoutubePlayerController.fromVideoId(
+        videoId: youtubeId,
+        autoPlay: false,
+        startSeconds: startAt > 0 ? startAt.toDouble() : null,
       );
 
-      _youtubeProgressTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-        final position = _youtubeController?.value.position;
-        if (position != null) {
-          context.read<VideoProgressProvider>().updateProgress(
-                videoId: widget.videoId,
-                watchedSeconds: position.inSeconds,
-              );
-        }
+      _youtubePositionSub = _youtubeController!
+          .getCurrentPositionStream(period: const Duration(seconds: 10))
+          .listen((position) {
+        if (!mounted) return;
+        context.read<VideoProgressProvider>().updateProgress(
+              videoId: widget.videoId,
+              watchedSeconds: position.inSeconds,
+            );
       });
     }
     return _youtubeController!;
@@ -123,15 +121,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       setState(() {
         _restartCounter++;
       });
-      _youtubeController?.seekTo(const Duration());
-      _youtubeController?.play();
+      _youtubeController?.seekTo(seconds: 0, allowSeekAhead: true);
     }
   }
 
   @override
   void dispose() {
-    _youtubeProgressTimer?.cancel();
-    _youtubeController?.dispose();
+    _youtubePositionSub?.cancel();
+    _youtubeController?.close();
     super.dispose();
   }
 
@@ -181,63 +178,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       );
     }
 
-    final youtubeId = _video?.youtubeId;
-    if (youtubeId != null) {
-      return _buildYoutubeScaffold(youtubeId);
-    }
-    return _buildDirectVideoScaffold();
-  }
+    final isYoutube = _video?.youtubeId != null;
 
-  // ==================== Vídeo do YouTube (embutido) ====================
-
-  Widget _buildYoutubeScaffold(String youtubeId) {
-    final controller = _getYoutubeController(youtubeId);
-
-    return YoutubePlayerBuilder(
-      player: YoutubePlayer(
-        controller: controller,
-        showVideoProgressIndicator: true,
-        progressIndicatorColor: const Color(0xFF0066FF),
-        bottomActions: const [
-          CurrentPosition(),
-          SizedBox(width: 8),
-          ProgressBar(isExpanded: true),
-          RemainingDuration(),
-          FullScreenButton(),
-        ],
-      ),
-      builder: (context, player) {
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Assista a aula'),
-            elevation: 0,
-            backgroundColor: const Color(0xFF0066FF),
-            actions: [
-              IconButton(
-                onPressed: _confirmRestart,
-                icon: const Icon(Icons.replay),
-                tooltip: 'Reiniciar aula',
-              ),
-            ],
-          ),
-          body: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                player,
-                _buildContinueBanner(),
-                _buildVideoInfoAndLessons(),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // ==================== Vídeo direto (arquivo/CDN, player seguro) ====================
-
-  Widget _buildDirectVideoScaffold() {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Assista a aula'),
@@ -255,53 +197,33 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Video Player (protegido, com token de curta duração)
-            // Importante: o player ocupa a caixa 16:9 inteira - nenhum
-            // título/aviso vai aqui dentro, senão o vídeo renderiza menor
-            // do que devia (bug corrigido).
-            Builder(builder: (context) {
-              final progressProvider = context.watch<VideoProgressProvider>();
-              final watched = _restartCounter > 0
-                  ? 0
-                  : progressProvider.getWatchedSeconds(widget.videoId);
-              return AspectRatio(
-                aspectRatio: 16 / 9,
-                child: SecureVideoPlayer(
-                  // Muda a key pra forçar recriação do player do zero ao reiniciar
-                  key: ValueKey('video-${widget.videoId}-restart-$_restartCounter'),
-                  videoId: widget.videoId.toString(),
-                  videoTitle: _video?.title ?? 'Aula',
-                  initialPositionSeconds: watched,
-                  onProgress: (seconds) {
-                    context.read<VideoProgressProvider>().updateProgress(
-                          videoId: widget.videoId,
-                          watchedSeconds: seconds,
-                        );
-                  },
-                ),
-              );
-            }),
+            // Área do vídeo: embutido, nunca abre YouTube/player externo.
+            // Importante: nenhum título/aviso vai dentro dessa caixa, senão
+            // o vídeo renderiza menor do que devia (bug já corrigido antes).
+            _buildVideoArea(),
 
             _buildContinueBanner(),
 
-            // Aviso de proteção (fora da caixa do vídeo, não afeta o tamanho dele)
-            Container(
-              width: double.infinity,
-              color: Colors.grey[900],
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Icon(Icons.shield_outlined, color: Colors.blue[400], size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Este vídeo é protegido. O link de acesso expira automaticamente.',
-                      style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
+            // Aviso de proteção (só existe pro player de arquivo direto -
+            // vídeo do YouTube não usa token de curta duração)
+            if (!isYoutube)
+              Container(
+                width: double.infinity,
+                color: Colors.grey[900],
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Icon(Icons.shield_outlined, color: Colors.blue[400], size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Este vídeo é protegido. O link de acesso expira automaticamente.',
+                        style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
             _buildVideoInfoAndLessons(),
           ],
@@ -310,7 +232,43 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     );
   }
 
-  // ==================== Blocos compartilhados pelos dois players ====================
+  Widget _buildVideoArea() {
+    final youtubeId = _video?.youtubeId;
+
+    if (youtubeId != null) {
+      return YoutubePlayer(
+        controller: _getYoutubeController(youtubeId),
+        aspectRatio: 16 / 9,
+        // Tela cheia só quando o usuário toca no botão de tela cheia dos
+        // próprios controles do player - nunca automaticamente.
+        autoFullScreen: false,
+        enableFullScreenOnVerticalDrag: false,
+      );
+    }
+
+    return Builder(builder: (context) {
+      final progressProvider = context.watch<VideoProgressProvider>();
+      final watched = _restartCounter > 0
+          ? 0
+          : progressProvider.getWatchedSeconds(widget.videoId);
+      return AspectRatio(
+        aspectRatio: 16 / 9,
+        child: SecureVideoPlayer(
+          // Muda a key pra forçar recriação do player do zero ao reiniciar
+          key: ValueKey('video-${widget.videoId}-restart-$_restartCounter'),
+          videoId: widget.videoId.toString(),
+          videoTitle: _video?.title ?? 'Aula',
+          initialPositionSeconds: watched,
+          onProgress: (seconds) {
+            context.read<VideoProgressProvider>().updateProgress(
+                  videoId: widget.videoId,
+                  watchedSeconds: seconds,
+                );
+          },
+        ),
+      );
+    });
+  }
 
   /// Aviso de "continuando de onde parou", se aplicável
   Widget _buildContinueBanner() {
