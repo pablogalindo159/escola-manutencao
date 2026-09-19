@@ -46,18 +46,18 @@ class Course {
   factory Course.fromJson(Map<String, dynamic> json) {
     return Course(
       id: json['id'] as int,
-      title: json['title'] as String,
-      description: json['description'] as String,
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
       thumbnailUrl: json['thumbnail_url'] as String?,
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      price: _toDouble(json['price']) ?? 0.0,
       type: json['type'] as String? ?? 'free',
       durationMinutes: json['duration_minutes'] as int?,
       category: json['category'] as String? ?? '',
       level: json['level'] as String? ?? 'beginner',
-      rating: (json['rating'] as num?)?.toDouble(),
+      rating: _toDouble(json['rating']),
       featured: json['featured'] as bool? ?? false,
       status: json['status'] as String? ?? 'draft',
-      instructorId: json['instructor_id'] as int,
+      instructorId: json['instructor_id'] as int? ?? 0,
       instructorName: json['instructor']?['name'] as String?,
       instructorAvatar: json['instructor']?['avatar_url'] as String?,
       videos: (json['videos'] as List<dynamic>?)
@@ -65,10 +65,20 @@ class Course {
           .toList(),
       studentCount: json['student_count'] as int?,
       isSubscribed: json['is_subscribed'] as bool?,
-      progressPercentage:
-          (json['progress_percentage'] as num?)?.toDouble(),
-      createdAt: DateTime.parse(json['created_at'] as String),
+      progressPercentage: _toDouble(json['progress_percentage']),
+      createdAt: json['created_at'] != null
+          ? (DateTime.tryParse(json['created_at'] as String) ?? DateTime.now())
+          : DateTime.now(),
     );
+  }
+
+  /// Converte valores que podem vir como String (ex: cast 'decimal' do
+  /// Laravel serializa como texto no JSON) ou num para double.
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 
   Map<String, dynamic> toJson() {
@@ -175,16 +185,18 @@ class Video {
     return Video(
       id: json['id'] as int,
       courseId: json['course_id'] as int,
-      title: json['title'] as String,
+      title: json['title'] as String? ?? '',
       description: json['description'] as String?,
-      videoUrl: json['video_url'] as String,
-      durationSeconds: json['duration_seconds'] as int,
-      order: json['order'] as int,
+      videoUrl: json['video_url'] as String? ?? '',
+      durationSeconds: json['duration_seconds'] as int? ?? 0,
+      order: json['order'] as int? ?? 0,
       quality: json['quality'] as String? ?? '720p',
       thumbnailUrl: json['thumbnail_url'] as String?,
       materialUrl: json['material_url'] as String?,
       status: json['status'] as String? ?? 'draft',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: json['created_at'] != null
+          ? (DateTime.tryParse(json['created_at'] as String) ?? DateTime.now())
+          : DateTime.now(),
     );
   }
 

@@ -252,22 +252,32 @@ class _HomeScreenState extends State<HomeScreen> {
                         }
 
                         if (provider.courses.isEmpty) {
+                          final hasError = provider.errorMessage != null;
                           return Center(
                             child: Padding(
                               padding: const EdgeInsets.all(32),
                               child: Column(
                                 children: [
                                   Icon(
-                                    Icons.school_outlined,
+                                    hasError
+                                        ? Icons.error_outline
+                                        : Icons.school_outlined,
                                     size: 64,
-                                    color: Colors.grey[300],
+                                    color: hasError
+                                        ? Colors.red[300]
+                                        : Colors.grey[300],
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
-                                    'Nenhum curso encontrado',
+                                    hasError
+                                        ? 'Erro ao carregar cursos: ${provider.errorMessage}'
+                                        : 'Nenhum curso encontrado',
+                                    textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: Colors.grey[600],
+                                      color: hasError
+                                          ? Colors.red[700]
+                                          : Colors.grey[600],
                                       fontFamily: 'Inter',
                                     ),
                                   ),
