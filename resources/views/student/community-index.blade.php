@@ -11,7 +11,7 @@
     </a>
 </div>
 
-@if ($courses->count() > 1)
+@if ($courses->count() > 0)
     <div class="flex flex-wrap gap-2 mb-6">
         <a href="{{ route('student.community.index') }}"
            class="px-3 py-1.5 rounded-full text-sm font-medium {{ !$selectedCourseId ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border' }}">
