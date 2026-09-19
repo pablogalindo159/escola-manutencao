@@ -30,8 +30,8 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] as int,
-      name: json['name'] as String,
-      email: json['email'] as String,
+      name: json['name'] as String? ?? '',
+      email: json['email'] as String? ?? '',
       phone: json['phone'] as String?,
       cpf: json['cpf'] as String?,
       bio: json['bio'] as String?,
@@ -39,12 +39,14 @@ class User {
       role: json['role'] as String? ?? 'student',
       status: json['status'] as String? ?? 'active',
       emailVerifiedAt: json['email_verified_at'] != null
-          ? DateTime.parse(json['email_verified_at'] as String)
+          ? DateTime.tryParse(json['email_verified_at'] as String)
           : null,
       lastLoginAt: json['last_login_at'] != null
-          ? DateTime.parse(json['last_login_at'] as String)
+          ? DateTime.tryParse(json['last_login_at'] as String)
           : null,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: json['created_at'] != null
+          ? (DateTime.tryParse(json['created_at'] as String) ?? DateTime.now())
+          : DateTime.now(),
     );
   }
 
