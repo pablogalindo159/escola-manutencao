@@ -33,6 +33,7 @@ dependencies:
   # Vídeo
   video_player: ^2.8.0
   chewie: ^1.7.0
+  youtube_player_flutter: ^10.0.1
 
   # Câmera/Galeria
   image_picker: ^1.0.7

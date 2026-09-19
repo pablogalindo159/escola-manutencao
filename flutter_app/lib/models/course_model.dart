@@ -207,4 +207,14 @@ class Video {
   }
 
   String get durationMinutes => (durationSeconds ~/ 60).toString();
+
+  /// ID do vídeo no YouTube, se video_url for um link do YouTube (mesma
+  /// regex usada no backend, calculado aqui pra saber embutir o player
+  /// sem precisar de uma chamada extra à API).
+  String? get youtubeId {
+    final match = RegExp(
+      r'(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})',
+    ).firstMatch(videoUrl);
+    return match?.group(1);
+  }
 }
