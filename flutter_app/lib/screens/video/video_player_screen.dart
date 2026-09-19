@@ -329,6 +329,165 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                             backgroundColor: const Color(0xFF0066FF),
                           ),
                         ),
+
+                      // Lista de aulas do curso (anterior/próxima), com a atual destacada
+                      if (course.videos != null && course.videos!.length > 1) ...[
+                        const SizedBox(height: 28),
+                        const Divider(),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Aulas do Curso',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Consumer<VideoProgressProvider>(
+                          builder: (context, progressProvider, _) {
+                            return ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: course.videos!.length,
+                              itemBuilder: (context, index) {
+                                final v = course.videos![index];
+                                final isCurrent = v.id == widget.videoId;
+                                final isCompleted =
+                                    progressProvider.isVideoCompleted(v.id);
+                                final isStarted =
+                                    progressProvider.isVideoStarted(v.id);
+
+                                return InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: isCurrent
+                                      ? null
+                                      : () {
+                                          Navigator.of(context).pushReplacement(
+                                            MaterialPageRoute(
+                                              builder: (_) => VideoPlayerScreen(
+                                                courseId: widget.courseId,
+                                                videoId: v.id,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                  child: Container(
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: isCurrent
+                                          ? const Color(0xFF0066FF).withOpacity(0.08)
+                                          : Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: isCurrent
+                                          ? Border.all(color: const Color(0xFF0066FF))
+                                          : null,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(6),
+                                          child: v.thumbnailUrl != null &&
+                                                  v.thumbnailUrl!.isNotEmpty
+                                              ? Image.network(
+                                                  v.thumbnailUrl!,
+                                                  width: 56,
+                                                  height: 42,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, __, ___) =>
+                                                      _videoThumbnailFallback(),
+                                                )
+                                              : _videoThumbnailFallback(),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '${index + 1}. ${v.title}',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: isCurrent
+                                                      ? FontWeight.bold
+                                                      : FontWeight.w600,
+                                                  fontFamily: 'Poppins',
+                                                  color: isCurrent
+                                                      ? const Color(0xFF0066FF)
+                                                      : Colors.black87,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    v.durationFormatted,
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: Colors.grey[600],
+                                                      fontFamily: 'Inter',
+                                                    ),
+                                                  ),
+                                                  if (isCurrent) ...[
+                                                    const SizedBox(width: 6),
+                                                    const Text(
+                                                      '· Assistindo agora',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: Color(0xFF0066FF),
+                                                        fontFamily: 'Inter',
+                                                      ),
+                                                    ),
+                                                  ] else if (isCompleted) ...[
+                                                    const SizedBox(width: 6),
+                                                    Text(
+                                                      '· Concluído',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: Colors.green[700],
+                                                        fontFamily: 'Inter',
+                                                      ),
+                                                    ),
+                                                  ] else if (isStarted) ...[
+                                                    const SizedBox(width: 6),
+                                                    const Text(
+                                                      '· Continuar',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: Color(0xFF0066FF),
+                                                        fontFamily: 'Inter',
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (isCurrent)
+                                          const Icon(
+                                            Icons.play_circle_fill,
+                                            color: Color(0xFF0066FF),
+                                            size: 20,
+                                          )
+                                        else if (isCompleted)
+                                          Icon(
+                                            Icons.check_circle,
+                                            color: Colors.green[600],
+                                            size: 18,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ],
                     ],
                   );
                 },
@@ -336,6 +495,19 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _videoThumbnailFallback() {
+    return Container(
+      width: 56,
+      height: 42,
+      color: const Color(0xFF0066FF).withOpacity(0.1),
+      child: const Icon(
+        Icons.play_circle_outline,
+        color: Color(0xFF0066FF),
+        size: 20,
       ),
     );
   }
