@@ -28,6 +28,10 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 // Rotas de cursos públicas
 Route::get('/courses', [CourseController::class, 'index']);
 Route::get('/courses/featured', [CourseController::class, 'featured']);
+// IMPORTANTE: /courses/my-courses precisa vir ANTES de /courses/{course},
+// senão o Laravel casa "my-courses" como se fosse o {course} (id/slug) e
+// nunca chega no controller correto (retorna 404 silenciosamente).
+Route::get('/courses/my-courses', [CourseController::class, 'myCourses'])->middleware('auth:api');
 Route::get('/courses/{course}', [CourseController::class, 'show']);
 
 // Verificar certificado público
@@ -66,7 +70,6 @@ Route::middleware('auth:api')->group(function () {
 
     // ==================== CURSOS ====================
     Route::prefix('courses')->group(function () {
-        Route::get('/my-courses', [CourseController::class, 'myCourses']);
         Route::post('/{course}/subscribe', [CourseController::class, 'subscribe']);
         
         // ADMIN
