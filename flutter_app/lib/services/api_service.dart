@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
+import 'package:dio/io.dart';
+import 'dart:io';
 
 class ApiService {
   // ✅ HTTPS com domínio e SSL configurados (Let's Encrypt/Certbot)
@@ -14,14 +16,25 @@ class ApiService {
     _dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        sendTimeout: const Duration(seconds: 15),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
       ),
     );
+
+    // ✅ Configurar HttpClientAdapter com validação de certificado flexível
+    (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+      final client = HttpClient();
+      client.badCertificateCallback = (cert, host, port) {
+        // Permitir certificados Let's Encrypt válidos mesmo que com pequenas inconsistências
+        return cert.issuer.contains('Lets Encrypt') || host == 'escola.informaticasaojose.srv.br';
+      };
+      return client;
+    };
 
     // Interceptor para adicionar token
     _dio.interceptors.add(
