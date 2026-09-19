@@ -10,6 +10,27 @@ use Illuminate\Http\Request;
 
 class CourseController extends Controller
 {
+    /**
+     * Catálogo com todos os cursos publicados, pra o aluno ver o que já
+     * tem e o que ainda pode comprar/se inscrever.
+     */
+    public function index(Request $request)
+    {
+        $user = $request->user();
+
+        $courses = Course::where('status', 'published')
+            ->with('instructor:id,name,avatar_url')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $subscribedCourseIds = $user->courses()->pluck('courses.id')->toArray();
+
+        return view('student.courses-index', [
+            'courses' => $courses,
+            'subscribedCourseIds' => $subscribedCourseIds,
+        ]);
+    }
+
     public function show(Request $request, Course $course)
     {
         $user = $request->user();

@@ -72,6 +72,7 @@ Route::get('/live-streams/{liveStream}', function (LiveStream $liveStream) {
 Route::middleware('auth')->prefix('minha-area')->name('student.')->group(function () {
     Route::get('/', [StudentDashboardController::class, 'index'])->name('dashboard');
 
+    Route::get('/cursos', [StudentCourseController::class, 'index'])->name('courses.index');
     Route::get('/cursos/{course}', [StudentCourseController::class, 'show'])->name('courses.show');
     Route::post('/cursos/{course}/inscrever', [StudentCourseController::class, 'enroll'])->name('courses.enroll');
 

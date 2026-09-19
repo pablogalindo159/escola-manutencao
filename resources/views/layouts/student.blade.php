@@ -16,6 +16,7 @@
                 </a>
                 <div class="flex items-center gap-4 text-sm">
                     <a href="{{ route('student.dashboard') }}" class="text-gray-700 hover:text-blue-600 font-medium">Meus Cursos</a>
+                    <a href="{{ route('student.courses.index') }}" class="text-gray-700 hover:text-blue-600 font-medium">Todos os Cursos</a>
                     <a href="{{ route('student.community.index') }}" class="text-gray-700 hover:text-blue-600 font-medium">Comunidade</a>
                     <a href="{{ route('student.profile.edit') }}" class="text-gray-700 hover:text-blue-600 font-medium">Perfil</a>
                     <form method="POST" action="{{ route('logout') }}">
