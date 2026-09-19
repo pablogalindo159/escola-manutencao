@@ -7,7 +7,7 @@ import 'providers/community_provider.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
-import 'screens/home/home_screen.dart';
+import 'screens/home/main_navigation_screen.dart';
 import 'screens/home/course_detail_screen.dart';
 import 'screens/video/course_progress_screen.dart';
 import 'screens/video/video_player_screen.dart';
@@ -85,7 +85,7 @@ class MyApp extends StatelessWidget {
         routes: {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
-          '/home': (context) => const HomeScreen(),
+          '/home': (context) => const MainNavigationScreen(),
           '/profile': (context) => const ProfileScreen(),
 
           '/course-detail': (context) {
