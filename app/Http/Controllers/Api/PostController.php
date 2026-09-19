@@ -81,6 +81,8 @@ class PostController extends Controller
                 'success' => true,
                 'data' => [
                     'id' => $post->id,
+                    'course_id' => $post->course_id,
+                    'user_id' => $post->user_id,
                     'title' => $post->title,
                     'content' => $post->content,
                     'author' => $post->author,

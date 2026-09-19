@@ -117,11 +117,33 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Video Player (protegido, com token de curta duração)
+            // Importante: o player ocupa a caixa 16:9 inteira - nenhum
+            // título/aviso vai aqui dentro, senão o vídeo renderiza menor
+            // do que devia (bug corrigido).
             AspectRatio(
               aspectRatio: 16 / 9,
               child: SecureVideoPlayer(
                 videoId: widget.videoId.toString(),
                 videoTitle: _video?.title ?? 'Aula',
+              ),
+            ),
+
+            // Aviso de proteção (fora da caixa do vídeo, não afeta o tamanho dele)
+            Container(
+              width: double.infinity,
+              color: Colors.grey[900],
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Icon(Icons.shield_outlined, color: Colors.blue[400], size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Este vídeo é protegido. O link de acesso expira automaticamente.',
+                      style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
+                    ),
+                  ),
+                ],
               ),
             ),
 

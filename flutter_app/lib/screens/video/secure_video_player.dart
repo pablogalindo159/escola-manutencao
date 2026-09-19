@@ -185,114 +185,80 @@ class _SecureVideoPlayerState extends State<SecureVideoPlayer> {
     });
   }
 
+  /// Se o acesso expira em breve/já expirou (usado pela tela pai pra
+  /// mostrar o aviso "Acesso válido por tempo limitado" fora da área do
+  /// player, sem roubar espaço vertical do vídeo em si).
+  bool get hasExpiration => _expiresAt != null;
+
   @override
   Widget build(BuildContext context) {
+    // Importante: este widget ocupa 100% do espaço que a tela pai der a
+    // ele (normalmente um AspectRatio 16:9). Não colocar título/rodapé
+    // AQUI DENTRO - isso rouba altura da área do vídeo e faz o player
+    // renderizar menor do que devia. Título e avisos ficam na tela pai,
+    // fora da caixa do player.
     return Container(
       color: Colors.black,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.videoTitle,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                if (_expiresAt != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      'Acesso válido por tempo limitado',
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+      width: double.infinity,
+      height: double.infinity,
+      child: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+            )
+          : _errorMessage != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red[400], size: 48),
+                        const SizedBox(height: 16),
+                        Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                      ],
                     ),
                   ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Container(
-              color: Colors.black,
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
-                    )
-                  : _errorMessage != null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.error_outline, color: Colors.red[400], size: 48),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _errorMessage!,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(color: Colors.white, fontSize: 16),
-                                ),
-                              ],
+                )
+              : _isYoutube
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.smart_display_outlined, color: Colors.white, size: 56),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Este vídeo está hospedado no YouTube',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.white, fontSize: 14),
                             ),
-                          ),
-                        )
-                      : _isYoutube
-                          ? Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.smart_display_outlined, color: Colors.white, size: 56),
-                                    const SizedBox(height: 16),
-                                    const Text(
-                                      'Este vídeo está hospedado no YouTube',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: Colors.white, fontSize: 14),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    ElevatedButton.icon(
-                                      onPressed: () async {
-                                        if (_youtubeId == null) return;
-                                        final uri = Uri.parse('https://www.youtube.com/watch?v=$_youtubeId');
-                                        if (await canLaunchUrl(uri)) {
-                                          await launchUrl(uri, mode: LaunchMode.externalApplication);
-                                        }
-                                      },
-                                      icon: const Icon(Icons.play_circle_outline),
-                                      label: const Text('Assistir no YouTube'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFFDC2626),
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                            const SizedBox(height: 20),
+                            ElevatedButton.icon(
+                              onPressed: () async {
+                                if (_youtubeId == null) return;
+                                final uri = Uri.parse('https://www.youtube.com/watch?v=$_youtubeId');
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                }
+                              },
+                              icon: const Icon(Icons.play_circle_outline),
+                              label: const Text('Assistir no YouTube'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFDC2626),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                               ),
-                            )
-                          : Chewie(controller: _chewieController!),
-            ),
-          ),
-          Container(
-            color: Colors.grey[900],
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Icon(Icons.shield_outlined, color: Colors.blue[400], size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Este vídeo é protegido. O link de acesso expira automaticamente.',
-                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : Chewie(controller: _chewieController!),
     );
   }
 

@@ -310,9 +310,19 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  Icon(
-                                    Icons.play_circle_outline,
-                                    color: const Color(0xFF0066FF),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: video.thumbnailUrl != null &&
+                                            video.thumbnailUrl!.isNotEmpty
+                                        ? Image.network(
+                                            video.thumbnailUrl!,
+                                            width: 64,
+                                            height: 48,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) =>
+                                                _videoThumbnailFallback(),
+                                          )
+                                        : _videoThumbnailFallback(),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -430,6 +440,18 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _videoThumbnailFallback() {
+    return Container(
+      width: 64,
+      height: 48,
+      color: const Color(0xFF0066FF).withOpacity(0.1),
+      child: const Icon(
+        Icons.play_circle_outline,
+        color: Color(0xFF0066FF),
       ),
     );
   }

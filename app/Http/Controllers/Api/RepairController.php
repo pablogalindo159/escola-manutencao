@@ -72,6 +72,7 @@ class RepairController extends Controller
                 'success' => true,
                 'data' => [
                     'id' => $repair->id,
+                    'user_id' => $repair->user_id,
                     'user' => $repair->user,
                     'equipment_type' => $repair->equipment_type,
                     'customer_name' => $repair->customer_name,

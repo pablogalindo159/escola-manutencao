@@ -67,6 +67,7 @@ class CommentController extends Controller
                 'data' => [
                     'id' => $comment->id,
                     'post_id' => $comment->post_id,
+                    'user_id' => $comment->user_id,
                     'content' => $comment->content,
                     'author' => $comment->author,
                     'likes_count' => $comment->likes_count,

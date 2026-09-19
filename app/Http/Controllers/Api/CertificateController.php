@@ -65,6 +65,8 @@ class CertificateController extends Controller
                 'success' => true,
                 'data' => [
                     'id' => $certificate->id,
+                    'user_id' => $certificate->user_id,
+                    'course_id' => $certificate->course_id,
                     'certificate_number' => $certificate->certificate_number,
                     'user' => $certificate->user,
                     'course' => $certificate->course,
