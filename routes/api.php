@@ -12,7 +12,10 @@ use App\Http\Controllers\Api\{
     VideoStreamController,
     PaymentController,
 };
-use App\Http\Controllers\PaymentWebhookController;
+use App\Http\Controllers\{
+    PaymentWebhookController,
+    PixTransparenteController,
+};
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -182,7 +185,18 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/admin/users/{id}/block-stream', [VideoStreamController::class, 'blockUser']);
     });
 
+    // ==================== PIX TRANSPARENTE ====================
+    Route::prefix('payments/pix')->group(function () {
+        Route::post('/gerar', [PixTransparenteController::class, 'gerarPix']);
+        Route::get('/{payment_id}/status', [PixTransparenteController::class, 'verificarStatus']);
+        Route::post('/{payment_id}/cancel', [PixTransparenteController::class, 'cancelarPagamento']);
+        Route::get('/my-payments', [PixTransparenteController::class, 'minhasPagamentos']);
+    });
+
 });
+
+// ==================== WEBHOOK PIX (público - sem auth) ====================
+Route::post('/payments/pix/webhook', [PixTransparenteController::class, 'webhook']);
 
 /*
 |--------------------------------------------------------------------------

@@ -42,18 +42,16 @@ class PixTransparenteController extends Controller
         try {
             $user = auth()->user();
             
-            // Criar Payment record no BD
+            // Criar Payment record no BD (usando campos válidos da migration)
             $payment = Payment::create([
                 'user_id' => $user->id,
                 'course_id' => $request->course_id,
                 'amount' => $request->amount,
-                'description' => $request->description,
-                'payment_method' => 'pix',
                 'status' => 'pending',
-                'mercado_pago_id' => null,
-                'qr_code' => null,
-                'pix_copy_paste' => null,
-                'expires_at' => now()->addHours(1),
+                'method' => 'pix',
+                'metadata' => [
+                    'description' => $request->description,
+                ],
             ]);
 
             // Criar pagamento PIX no Mercado Pago
@@ -77,15 +75,18 @@ class PixTransparenteController extends Controller
 
             // Atualizar Payment com dados do Mercado Pago
             $payment->update([
-                'mercado_pago_id' => $payment_response->id,
-                'qr_code' => $qr_code,
-                'pix_copy_paste' => $pix_copy_paste,
+                'mercado_pago_payment_id' => $payment_response->id,
+                'metadata' => [
+                    'description' => $request->description,
+                    'qr_code' => $qr_code,
+                    'pix_copy_paste' => $pix_copy_paste,
+                ],
             ]);
 
             return response()->json([
                 'success' => true,
                 'payment_id' => $payment->id,
-                'mercado_pago_id' => $payment_response->id,
+                'mercado_pago_payment_id' => $payment_response->id,
                 'qr_code' => $qr_code, // URL da imagem QR Code
                 'pix_copy_paste' => $pix_copy_paste, // Código PIX Copia e Cola
                 'amount' => $request->amount,
@@ -121,7 +122,7 @@ class PixTransparenteController extends Controller
 
             // Buscar status no Mercado Pago
             $client = new PaymentClient();
-            $mp_payment = $client->get($payment->mercado_pago_id);
+            $mp_payment = $client->get($payment->mercado_pago_payment_id);
 
             $status = $mp_payment->status; // approved, pending, rejected, etc
 
@@ -182,7 +183,7 @@ class PixTransparenteController extends Controller
                 $mp_payment_id = $request->data['id'] ?? null;
 
                 if ($mp_payment_id) {
-                    $payment = Payment::where('mercado_pago_id', $mp_payment_id)->first();
+                    $payment = Payment::where('mercado_pago_payment_id', $mp_payment_id)->first();
 
                     if ($payment) {
                         // Buscar detalhes do pagamento

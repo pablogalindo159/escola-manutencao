@@ -17,7 +17,8 @@
         "guzzlehttp/guzzle": "^7.8",
         "laravel/sanctum": "^4.0",
         "barryvdh/laravel-dompdf": "^3.1",
-        "intervention/image": "^3.0"
+        "intervention/image": "^3.0",
+        "mercadopago/dx-php": "^3.0"
     },
     "require-dev": {
         "laravel/pint": "^1.13",
