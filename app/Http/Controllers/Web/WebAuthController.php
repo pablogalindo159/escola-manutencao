@@ -15,7 +15,7 @@ class WebAuthController extends Controller
     {
         if (Auth::check()) {
             $user = Auth::user();
-            return redirect(in_array($user->role, ['admin', 'instructor']) ? route('dashboard') : route('student.dashboard'));
+            return redirect(in_array($user->role, ['admin', 'instructor']) ? route('admin.dashboard') : route('student.dashboard'));
         }
 
         return view('auth.login');
@@ -33,7 +33,7 @@ class WebAuthController extends Controller
 
             $user = Auth::user();
             $homeRoute = in_array($user->role, ['admin', 'instructor'])
-                ? route('dashboard')
+                ? route('admin.dashboard')
                 : route('student.dashboard');
 
             return redirect()->intended($homeRoute);
@@ -57,7 +57,7 @@ class WebAuthController extends Controller
     public function showRegister()
     {
         if (Auth::check()) {
-            return redirect()->route('dashboard');
+            return redirect()->route('admin.dashboard');
         }
 
         return view('auth.register');

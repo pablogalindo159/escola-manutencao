@@ -7,7 +7,7 @@
             <h1 class="text-3xl font-bold text-gray-900">Cursos</h1>
             <div class="flex items-center gap-4">
                 <a href="{{ route('admin.courses.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-semibold">+ Novo Curso</a>
-                <a href="{{ route('dashboard') }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">← Voltar ao Dashboard</a>
+                <a href="{{ route('admin.dashboard') }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">← Voltar ao Dashboard</a>
             </div>
         </div>
     </div>
