@@ -98,7 +98,7 @@ Route::middleware('auth')->prefix('minha-area')->name('student.')->group(functio
 });
 
 Route::middleware(['auth', 'admin.web'])->group(function () {
-    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
 
     Route::get('/admin/cursos', [AdminDashboardController::class, 'courses'])->name('admin.courses');
     Route::get('/admin/cursos/novo', [AdminDashboardController::class, 'createCourse'])->name('admin.courses.create');
