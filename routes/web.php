@@ -79,7 +79,7 @@ Route::middleware('auth')->prefix('minha-area')->name('student.')->group(functio
     Route::post('/cursos/{course}/inscrever', [StudentCourseController::class, 'enroll'])->name('courses.enroll');
     Route::post('/cursos/{course}/checkout', [StudentPaymentController::class, 'checkout'])->name('courses.checkout');
     Route::post('/cursos/{course}/gerar-pix', [StudentPaymentController::class, 'gerarPix'])->name('courses.gerar-pix');
-    Route::get('/cursos/{course}/status-pix/{paymentId}', [StudentPaymentController::class, 'statusPix'])->where('paymentId', '[0-9a-zA-Z\-]+')->name('courses.status-pix');
+    Route::get('/cursos/{course}/status-pix/{paymentId}', [StudentPaymentController::class, 'statusPix'])->name('courses.status-pix');
     Route::get('/checkout/retorno', [StudentPaymentController::class, 'returnFromCheckout'])->name('checkout.return');
 
     Route::get('/videos/{video}', [StudentVideoController::class, 'watch'])->name('videos.watch');
