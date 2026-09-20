@@ -22,15 +22,41 @@ class MercadoPagoService
 
     private function accessToken(): string
     {
-        $token = config('services.mercadopago.access_token');
+        // Tenta primeiro o banco de dados (painel admin), depois o .env
+        $token = \App\Models\Setting::get('mercado_pago_access_token');
+        
+        if (!$token) {
+            $token = config('services.mercadopago.access_token');
+        }
 
         if (!$token) {
             throw new \RuntimeException(
-                'MERCADO_PAGO_ACCESS_TOKEN não configurado no .env do servidor.'
+                '❌ MERCADO_PAGO_ACCESS_TOKEN não configurado. Configure no Painel Admin > Configurações > Mercado Pago'
             );
         }
 
         return $token;
+    }
+
+    /**
+     * Obter a Public Key do Mercado Pago
+     */
+    private function publicKey(): string
+    {
+        // Tenta primeiro o banco de dados, depois o .env
+        $key = \App\Models\Setting::get('mercado_pago_public_key');
+        
+        if (!$key) {
+            $key = config('services.mercadopago.public_key');
+        }
+
+        if (!$key) {
+            throw new \RuntimeException(
+                '❌ MERCADO_PAGO_PUBLIC_KEY não configurada. Configure no Painel Admin > Configurações > Mercado Pago'
+            );
+        }
+
+        return $key;
     }
 
     /**
@@ -139,5 +165,88 @@ class MercadoPagoService
             'account_money', 'digital_wallet' => 'wallet',
             default => null,
         };
+    }
+
+    /**
+     * Cria um pagamento PIX Transparente (sem redirecionamento)
+     * Retorna QR Code, código de cópia e cola, URL do comprovante, etc.
+     */
+    public function createPixPayment(Course $course, User $user): array
+    {
+        $externalReference = "course_{$course->id}_user_{$user->id}";
+
+        $payload = [
+            'transaction_amount' => (float) $course->price,
+            'description' => $course->title,
+            'payment_method_id' => 'pix',
+            'payer' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'identification' => [
+                    'type' => 'CPF',
+                    'number' => $user->cpf ?? '00000000000', // Campo opcional
+                ],
+            ],
+            'notification_url' => route('webhooks.mercadopago'),
+            'external_reference' => $externalReference,
+        ];
+
+        $response = Http::withToken($this->accessToken())
+            ->timeout(15)
+            ->post(self::BASE_URL . '/v1/payments', $payload);
+
+        if (!$response->successful()) {
+            Log::error('Mercado Pago PIX: falha ao criar pagamento', [
+                'course_id' => $course->id,
+                'user_id' => $user->id,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            throw new \RuntimeException(
+                'Não foi possível gerar o QR Code PIX. Verifique suas credenciais no Painel Admin.'
+            );
+        }
+
+        $data = $response->json();
+
+        // Extrai os dados do PIX
+        return [
+            'id' => $data['id'] ?? null,
+            'qr_code' => $data['point_of_interaction']['transaction_data']['qr_code'] ?? null,
+            'qr_code_base64' => $data['point_of_interaction']['transaction_data']['qr_code_base64'] ?? null,
+            'pix_copy_paste' => $data['point_of_interaction']['transaction_data']['copy_and_paste'] ?? null,
+            'ticket_url' => $data['transaction_details']['ticket_url'] ?? null,
+            'status' => $data['status'] ?? null,
+            'date_of_expiration' => $data['date_of_expiration'] ?? null,
+        ];
+    }
+
+    /**
+     * Consultar status de um pagamento PIX
+     */
+    public function getPixStatus(string $paymentId): array
+    {
+        $response = Http::withToken($this->accessToken())
+            ->timeout(15)
+            ->get(self::BASE_URL . "/v1/payments/{$paymentId}");
+
+        if (!$response->successful()) {
+            Log::error('Mercado Pago: falha ao consultar status PIX', [
+                'payment_id' => $paymentId,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            throw new \RuntimeException("Não foi possível consultar o status do pagamento.");
+        }
+
+        $data = $response->json();
+
+        return [
+            'id' => $data['id'] ?? null,
+            'status' => $data['status'] ?? null,
+            'status_detail' => $data['status_detail'] ?? null,
+        ];
     }
 }
