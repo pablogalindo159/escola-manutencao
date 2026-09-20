@@ -64,22 +64,23 @@ class PixTransparenteController extends Controller
                     "email" => $user->email,
                     "first_name" => $user->name,
                 ],
-                "notification_url" => config('app.url') . '/api/payments/webhook',
+                "external_reference" => "payment_{$payment->id}",
+                "notification_url" => config('app.url') . '/api/payments/pix/webhook',
             ];
 
             $payment_response = $client->create($request_body);
 
             // Extrair dados PIX da resposta
             // Estrutura correta: point_of_interaction -> transaction_data -> qr_code / qr_code_base64
-            $qr_code = $payment_response->point_of_interaction?->transaction_data?->qr_code ?? null;
-            $pix_copy_paste = $payment_response->point_of_interaction?->transaction_data?->qr_code_base64 ?? null;
+            $pix_copy_paste = $payment_response->point_of_interaction?->transaction_data?->qr_code ?? null;
+            $qr_code_base64 = $payment_response->point_of_interaction?->transaction_data?->qr_code_base64 ?? null;
 
             // Atualizar Payment com dados do Mercado Pago
             $payment->update([
                 'mercado_pago_payment_id' => $payment_response->id,
                 'metadata' => [
                     'description' => $request->description,
-                    'qr_code' => $qr_code,
+                    'qr_code_base64' => $qr_code_base64,
                     'pix_copy_paste' => $pix_copy_paste,
                 ],
             ]);
@@ -88,8 +89,8 @@ class PixTransparenteController extends Controller
                 'success' => true,
                 'payment_id' => $payment->id,
                 'mercado_pago_payment_id' => $payment_response->id,
-                'qr_code' => $qr_code, // URL da imagem QR Code
-                'pix_copy_paste' => $pix_copy_paste, // Código PIX Copia e Cola
+                'qr_code_base64' => $qr_code_base64,
+                'pix_copy_paste' => $pix_copy_paste,
                 'amount' => $request->amount,
                 'description' => $request->description,
                 'user_name' => $user->name,
@@ -129,7 +130,7 @@ class PixTransparenteController extends Controller
             // Atualizar status no BD
             if ($status === 'approved') {
                 $payment->update([
-                    'status' => 'completed',
+                    'status' => 'approved',
                     'paid_at' => now(),
                 ]);
 
