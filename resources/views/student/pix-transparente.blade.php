@@ -113,11 +113,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function gerarPix() {
     try {
         const course = {{ $course->id }};
+        
+        // Obter CSRF token com fallback
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        const csrfToken = csrfMeta ? csrfMeta.content : '{{ csrf_token() }}';
+        
         const response = await fetch(`/minha-area/cursos/${course}/gerar-pix`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'X-CSRF-TOKEN': csrfToken,
             },
         });
 
