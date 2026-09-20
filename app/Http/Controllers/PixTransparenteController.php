@@ -70,8 +70,9 @@ class PixTransparenteController extends Controller
             $payment_response = $client->create($request_body);
 
             // Extrair dados PIX da resposta
-            $qr_code = $payment_response->point_of_interaction?->qr_code?->image_url ?? null;
-            $pix_copy_paste = $payment_response->point_of_interaction?->qr_code?->in_store_order_id ?? null;
+            // Estrutura correta: point_of_interaction -> transaction_data -> qr_code / qr_code_base64
+            $qr_code = $payment_response->point_of_interaction?->transaction_data?->qr_code ?? null;
+            $pix_copy_paste = $payment_response->point_of_interaction?->transaction_data?->qr_code_base64 ?? null;
 
             // Atualizar Payment com dados do Mercado Pago
             $payment->update([
