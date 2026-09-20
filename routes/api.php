@@ -181,8 +181,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/admin/videos/{id}/access-log', [VideoStreamController::class, 'accessLog']);
         Route::post('/admin/users/{id}/block-stream', [VideoStreamController::class, 'blockUser']);
     });
-
-
+});
 
 /*
 |--------------------------------------------------------------------------
