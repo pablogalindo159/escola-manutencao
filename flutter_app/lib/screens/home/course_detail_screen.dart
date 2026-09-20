@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/course_provider.dart';
 import '../video/video_player_screen.dart';
 
@@ -16,6 +17,8 @@ class CourseDetailScreen extends StatefulWidget {
 }
 
 class _CourseDetailScreenState extends State<CourseDetailScreen> {
+  bool _isProcessingPayment = false;
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +43,50 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
         const SnackBar(
           content: Text('Inscrito com sucesso!'),
           backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  /// Curso pago: cria a cobrança no Mercado Pago e abre a página de
+  /// pagamento no navegador (nunca dentro do app - o app não lida com
+  /// dado de cartão nenhum). O acesso libera sozinho quando o
+  /// pagamento for aprovado (webhook no backend), sem precisar voltar
+  /// pro app pra confirmar nada.
+  Future<void> _checkoutCourse() async {
+    setState(() => _isProcessingPayment = true);
+
+    final provider = context.read<CourseProvider>();
+    final initPoint = await provider.checkoutCourse(widget.courseId);
+
+    if (!mounted) return;
+    setState(() => _isProcessingPayment = false);
+
+    if (initPoint == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.errorMessage ?? 'Erro ao iniciar pagamento'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final uri = Uri.parse(initPoint);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Assim que o pagamento for aprovado, o curso libera automaticamente.'),
+          ),
+        );
+      }
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível abrir a página de pagamento.'),
+          backgroundColor: Colors.red,
         ),
       );
     }
@@ -446,14 +493,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Subscribe Button
+                      // Subscribe / Buy Button
                       SizedBox(
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: course.isSubscribed == true
+                          onPressed: course.isSubscribed == true || _isProcessingPayment
                               ? null
-                              : _subscribeToCourse,
+                              : (course.isFree ? _subscribeToCourse : _checkoutCourse),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF0066FF),
                             disabledBackgroundColor: Colors.grey[300],
@@ -461,17 +508,26 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: Text(
-                            course.isSubscribed == true
-                                ? 'Já inscrito'
-                                : 'Inscrever-se agora',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontFamily: 'Poppins',
-                            ),
-                          ),
+                          child: _isProcessingPayment
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2.5,
+                                  ),
+                                )
+                              : Text(
+                                  course.isSubscribed == true
+                                      ? 'Já inscrito'
+                                      : (course.isFree ? 'Inscrever-se agora' : 'Comprar com Mercado Pago'),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    fontFamily: 'Poppins',
+                                  ),
+                                ),
                         ),
                       ),
                     ],

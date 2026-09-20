@@ -96,6 +96,19 @@ class CourseProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Iniciar checkout de um curso pago. Devolve a URL de pagamento do
+  /// Mercado Pago (ou null se der erro), pra a tela abrir no navegador.
+  Future<String?> checkoutCourse(int courseId) async {
+    _errorMessage = null;
+    try {
+      return await _apiService.checkoutCourse(courseId);
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
   /// Inscrever-se em um curso
   Future<bool> subscribeToCourse(int courseId) async {
     _isLoading = true;

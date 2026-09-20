@@ -343,6 +343,16 @@ class CourseController extends Controller
         try {
             $user = auth('api')->user();
 
+            // Inscrição direta só serve pra curso GRÁTIS. Curso pago tem
+            // que passar pelo checkout do Mercado Pago - sem essa checagem,
+            // esse endpoint liberava qualquer curso pago de graça.
+            if ($course->type !== 'free' || $course->status !== 'published') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Este curso é pago. Use o checkout para adquiri-lo.',
+                ], 422);
+            }
+
             // Verificar se já está inscrito
             if ($user->courses()->where('course_id', $course->id)->exists()) {
                 return response()->json([
@@ -354,8 +364,8 @@ class CourseController extends Controller
             // Criar inscrição
             $subscription = $user->subscriptions()->create([
                 'course_id' => $course->id,
-                'type' => $course->type === 'free' ? 'lifetime' : 'monthly',
-                'price' => $course->price,
+                'type' => 'lifetime',
+                'price' => 0,
                 'status' => 'active',
             ]);
 

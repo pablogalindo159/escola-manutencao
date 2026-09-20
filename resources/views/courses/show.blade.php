@@ -57,11 +57,17 @@
                             </button>
                         </form>
                     @else
+                        <form method="POST" action="{{ route('student.courses.checkout', $course) }}">
+                            @csrf
+                            <button type="submit"
+                                class="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
+                                Comprar com Mercado Pago
+                            </button>
+                        </form>
                         <a href="https://wa.me/554132830558" target="_blank"
-                           class="block text-center w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
-                            Falar sobre matrícula
+                           class="block text-center w-full py-2.5 mt-2 text-blue-600 text-sm font-medium hover:underline">
+                            Prefere falar com a gente primeiro?
                         </a>
-                        <p class="text-xs text-gray-500 mt-3 text-center">Pagamento online em breve. Por enquanto, entre em contato.</p>
                     @endif
                 @else
                     <a href="{{ route('login') }}"

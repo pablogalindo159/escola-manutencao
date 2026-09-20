@@ -10,7 +10,9 @@ use App\Http\Controllers\Api\{
     CertificateController,
     LiveStreamController,
     VideoStreamController,
+    PaymentController,
 };
+use App\Http\Controllers\PaymentWebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -24,6 +26,10 @@ use Illuminate\Support\Facades\Route;
 // Rotas públicas (sem autenticação)
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
+
+// Webhook do Mercado Pago (chamado pelo servidor deles, nunca pelo app/site -
+// sem autenticação de usuário, e a rota 'api' já não tem CSRF por padrão)
+Route::post('/webhooks/mercadopago', [PaymentWebhookController::class, 'handle'])->name('webhooks.mercadopago');
 
 // Rotas de cursos públicas
 Route::get('/courses', [CourseController::class, 'index']);
@@ -71,7 +77,8 @@ Route::middleware('auth:api')->group(function () {
     // ==================== CURSOS ====================
     Route::prefix('courses')->group(function () {
         Route::post('/{course}/subscribe', [CourseController::class, 'subscribe']);
-        
+        Route::post('/{course}/checkout', [PaymentController::class, 'checkout']);
+
         // ADMIN
         Route::post('/', [CourseController::class, 'store'])->middleware('admin');
         Route::put('/{course}', [CourseController::class, 'update'])->middleware('admin');

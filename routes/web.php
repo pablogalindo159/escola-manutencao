@@ -11,6 +11,7 @@ use App\Http\Controllers\Student\CourseController as StudentCourseController;
 use App\Http\Controllers\Student\VideoController as StudentVideoController;
 use App\Http\Controllers\Student\CommunityController as StudentCommunityController;
 use App\Http\Controllers\Student\ProfileController as StudentProfileController;
+use App\Http\Controllers\Student\PaymentController as StudentPaymentController;
 use App\Models\Course;
 use App\Models\LiveStream;
 
@@ -75,6 +76,8 @@ Route::middleware('auth')->prefix('minha-area')->name('student.')->group(functio
     Route::get('/cursos', [StudentCourseController::class, 'index'])->name('courses.index');
     Route::get('/cursos/{course}', [StudentCourseController::class, 'show'])->name('courses.show');
     Route::post('/cursos/{course}/inscrever', [StudentCourseController::class, 'enroll'])->name('courses.enroll');
+    Route::post('/cursos/{course}/checkout', [StudentPaymentController::class, 'checkout'])->name('courses.checkout');
+    Route::get('/checkout/retorno', [StudentPaymentController::class, 'returnFromCheckout'])->name('checkout.return');
 
     Route::get('/videos/{video}', [StudentVideoController::class, 'watch'])->name('videos.watch');
     Route::get('/videos/{video}/stream', [StudentVideoController::class, 'stream'])->name('videos.stream');

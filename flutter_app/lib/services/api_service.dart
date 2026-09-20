@@ -284,6 +284,23 @@ class ApiService {
     }
   }
 
+  /// Iniciar checkout de um curso pago (Mercado Pago). Devolve a URL
+  /// da página de pagamento hospedada por eles - o app abre no
+  /// navegador, nunca lida com dado de cartão diretamente.
+  Future<String> checkoutCourse(int courseId) async {
+    try {
+      final response = await _dio.post('/courses/$courseId/checkout');
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final initPoint = response.data['data']?['init_point'] as String?;
+        if (initPoint != null) return initPoint;
+      }
+      throw Exception(response.data['message'] ?? 'Erro ao iniciar pagamento');
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   // ==================== VÍDEOS ====================
 
   /// Obter detalhes do vídeo
