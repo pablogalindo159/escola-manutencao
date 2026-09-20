@@ -81,9 +81,9 @@ class MercadoPagoService
                 'email' => $user->email,
             ],
             'back_urls' => [
-                'success' => route('checkout.return', ['status' => 'success']),
-                'pending' => route('checkout.return', ['status' => 'pending']),
-                'failure' => route('checkout.return', ['status' => 'failure']),
+                'success' => route('student.checkout.return', ['status' => 'success']),
+                'pending' => route('student.checkout.return', ['status' => 'pending']),
+                'failure' => route('student.checkout.return', ['status' => 'failure']),
             ],
             'auto_return' => 'approved',
             'notification_url' => route('webhooks.mercadopago'),
