@@ -1,39 +1,21 @@
-# 🐛 Debug Scripts - Escola da Manutenção
+# Debug Scripts - Escola da Manutencao
 
-Scripts para debugar problemas da aplicação.
+Scripts para debugar problemas da aplicacao.
 
 ## Mercado Pago Debug
 
-### Via Tinker (Recomendado)
+### Via PHP direto (Recomendado)
 
 ```bash
 cd /var/www/escola-manutencao
-php artisan tinker
->>> include 'debug/mercado-pago.php'
+php debug/test.php
 ```
 
 **O que verifica:**
-- ✅ Credenciais Mercado Pago no banco
-- ✅ Se consegue buscar um curso+usuário de teste
-- ✅ Se consegue chamar a API do Mercado Pago
-- ✅ Se a resposta volta com `init_point` (URL de checkout)
-
-### Via Rota HTTP (Alternativa)
-
-Se você quer verificar via browser:
-
-1. **Abra** `routes/web.php`
-2. **Cole** isso ANTES de `return;` no arquivo:
-
-```php
-Route::get('/debug/mercado-pago', function () {
-    return include resource_path('debug-mercado-pago-route.php');
-});
-```
-
-3. Acesse: `https://escola.informaticasaojose.srv.br/debug/mercado-pago`
-
-4. **DEPOIS**, remova a rota! ⚠️ Não deixa isso em produção!
+- Credenciais Mercado Pago no banco
+- Se consegue buscar um curso+usuario de teste
+- Se consegue chamar a API do Mercado Pago
+- Se a resposta volta com init_point (URL de checkout)
 
 ---
 
