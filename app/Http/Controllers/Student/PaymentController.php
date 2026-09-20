@@ -13,9 +13,9 @@ use MercadoPago\MercadoPagoConfig;
 class PaymentController extends Controller
 {
     /**
-     * Exibe a página de pagamento PIX Transparente
+     * Exibe a página de pagamento (PIX Transparente ou Checkout Pro)
      */
-    public function checkout(Request $request, Course $course)
+    public function checkout(Request $request, Course $course, MercadoPagoService $mercadoPago)
     {
         $user = $request->user();
 
@@ -27,10 +27,43 @@ class PaymentController extends Controller
             return redirect()->route('student.courses.show', $course);
         }
 
-        return view('student.pix-transparente', [
-            'course' => $course,
-            'user' => $user,
+        // Verificar qual método usar
+        $paymentMethod = \App\Models\Setting::get('mercado_pago_payment_method') ?? 'pix_transparente';
+
+        if ($paymentMethod === 'checkout_pro') {
+            // Usar Checkout Pro (redireciona para Mercado Pago)
+            return $this->checkoutPro($request, $course, $mercadoPago);
+        } else {
+            // Usar PIX Transparente (mostra QR Code no site)
+            return view('student.pix-transparente', [
+                'course' => $course,
+                'user' => $user,
+            ]);
+        }
+    }
+
+    /**
+     * Checkout Pro (redireciona para Mercado Pago)
+     */
+    private function checkoutPro(Request $request, Course $course, MercadoPagoService $mercadoPago)
+    {
+        $user = $request->user();
+
+        try {
+            $preference = $mercadoPago->createPreference($course, $user);
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        Payment::create([
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+            'amount' => $course->price,
+            'mercado_pago_preference_id' => $preference['id'] ?? null,
+            'status' => 'pending',
         ]);
+
+        return redirect()->away($preference['init_point']);
     }
 
     /**

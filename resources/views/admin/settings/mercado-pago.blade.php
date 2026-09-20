@@ -123,6 +123,29 @@
                 </select>
             </div>
 
+            <!-- Método de Pagamento -->
+            <div>
+                <label for="payment_method" class="block text-sm font-medium text-gray-700 mb-2">
+                    💳 Método de Pagamento
+                </label>
+                <select 
+                    id="payment_method"
+                    name="payment_method" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                    <option value="pix_transparente" @selected(($mpSettings['payment_method'] ?? 'pix_transparente') == 'pix_transparente')>
+                        📱 PIX Transparente — QR Code no site (RECOMENDADO)
+                    </option>
+                    <option value="checkout_pro" @selected(($mpSettings['payment_method'] ?? 'pix_transparente') == 'checkout_pro')>
+                        🔗 Checkout Pro — Redireciona para Mercado Pago
+                    </option>
+                </select>
+                <p class="text-xs text-gray-500 mt-2">
+                    <strong>PIX Transparente:</strong> User não sai do site, escaneia QR Code<br>
+                    <strong>Checkout Pro:</strong> User redireciona para site do Mercado Pago
+                </p>
+            </div>
+
             <!-- Status Atual -->
             <div class="bg-gray-50 border-l-4 border-gray-400 p-4 rounded">
                 <h3 class="font-bold text-gray-900 mb-3">📊 Status Atual</h3>
@@ -133,6 +156,14 @@
                             <span class="text-red-600 font-bold">🚀 Production</span>
                         @else
                             <span class="text-yellow-600 font-bold">🧪 Sandbox</span>
+                        @endif
+                    </li>
+                    <li>
+                        <strong>Método de Pagamento:</strong> 
+                        @if(($mpSettings['payment_method'] ?? 'pix_transparente') == 'pix_transparente')
+                            <span class="text-blue-600 font-bold">📱 PIX Transparente (Ativo)</span>
+                        @else
+                            <span class="text-purple-600 font-bold">🔗 Checkout Pro (Ativo)</span>
                         @endif
                     </li>
                     <li>
