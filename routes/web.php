@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\LiveStreamController as AdminLiveStreamController;
 use App\Http\Controllers\Admin\VideoController as AdminVideoController;
+use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Web\WebAuthController;
 use App\Http\Controllers\Web\CourseController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
@@ -117,6 +118,10 @@ Route::middleware(['auth', 'admin.web'])->group(function () {
     });
 
     Route::get('/admin/pagamentos', [AdminDashboardController::class, 'payments'])->name('admin.payments');
+
+    // Configurações Mercado Pago
+    Route::get('/admin/configuracoes/mercado-pago', [SettingsController::class, 'mercadoPago'])->name('admin.settings.mercado-pago');
+    Route::post('/admin/configuracoes/mercado-pago', [SettingsController::class, 'updateMercadoPago'])->name('admin.settings.update-mercado-pago');
 
     Route::prefix('admin/live-streams')->name('admin.live-streams.')->group(function () {
         Route::get('/', [AdminLiveStreamController::class, 'index'])->name('index');
