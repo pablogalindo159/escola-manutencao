@@ -20,6 +20,47 @@
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
+        <!-- Funcionalidades Admin -->
+        <div class="mb-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">⚙️ Funcionalidades</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <!-- Cursos -->
+                <a href="{{ route('admin.courses') }}" class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition text-center">
+                    <div class="text-3xl mb-2">📚</div>
+                    <p class="font-semibold text-gray-900">Cursos</p>
+                    <p class="text-xs text-gray-600">Gerenciar cursos</p>
+                </a>
+
+                <!-- Pagamentos -->
+                <a href="{{ route('admin.payments') }}" class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition text-center">
+                    <div class="text-3xl mb-2">💳</div>
+                    <p class="font-semibold text-gray-900">Pagamentos</p>
+                    <p class="text-xs text-gray-600">Ver transações</p>
+                </a>
+
+                <!-- Transmissões ao Vivo -->
+                <a href="{{ route('admin.live-streams.index') }}" class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition text-center">
+                    <div class="text-3xl mb-2">🔴</div>
+                    <p class="font-semibold text-gray-900">Lives</p>
+                    <p class="text-xs text-gray-600">Transmissões ao vivo</p>
+                </a>
+
+                <!-- Mercado Pago -->
+                <a href="{{ route('admin.settings.mercado-pago') }}" class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition text-center border-2 border-green-500">
+                    <div class="text-3xl mb-2">🔐</div>
+                    <p class="font-semibold text-gray-900">Mercado Pago</p>
+                    <p class="text-xs text-green-600 font-semibold">Configurar</p>
+                </a>
+
+                <!-- Usuários -->
+                <a href="{{ route('admin.users') }}" class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition text-center">
+                    <div class="text-3xl mb-2">👥</div>
+                    <p class="font-semibold text-gray-900">Usuários</p>
+                    <p class="text-xs text-gray-600">Gerenciar usuários</p>
+                </a>
+            </div>
+        </div>
+
         <!-- Metrics Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <!-- Total Users -->
