@@ -70,7 +70,7 @@ class PixTransparenteController extends Controller
             $payment_response = $client->create($request_body);
 
             // Extrair dados PIX da resposta
-            $qr_code = $payment_response->point_of_interaction?->qr_code?->image ?? null;
+            $qr_code = $payment_response->point_of_interaction?->qr_code?->image_url ?? null;
             $pix_copy_paste = $payment_response->point_of_interaction?->qr_code?->in_store_order_id ?? null;
 
             // Atualizar Payment com dados do Mercado Pago
@@ -91,7 +91,6 @@ class PixTransparenteController extends Controller
                 'pix_copy_paste' => $pix_copy_paste, // Código PIX Copia e Cola
                 'amount' => $request->amount,
                 'description' => $request->description,
-                'expires_at' => $payment->expires_at,
                 'user_name' => $user->name,
             ], 200);
 
@@ -170,17 +169,27 @@ class PixTransparenteController extends Controller
     public function webhook(Request $request)
     {
         try {
+            // Log da requisição para debug
+            \Log::info('Webhook Mercado Pago received', [
+                'headers' => $request->headers->all(),
+                'body' => $request->all(),
+            ]);
+
             // Validar assinatura do webhook (opcional mas recomendado)
             $signature = $request->header('x-signature');
             $request_id = $request->header('x-request-id');
 
             if (!$signature || !$request_id) {
+                \Log::warning('Webhook sem assinatura válida');
                 return response()->json(['received' => true], 200);
             }
 
             // Processar notificação
-            if ($request->action === 'payment.created' || $request->action === 'payment.updated') {
-                $mp_payment_id = $request->data['id'] ?? null;
+            $action = $request->input('action');
+            $data = $request->input('data');
+            
+            if (($action === 'payment.created' || $action === 'payment.updated') && $data) {
+                $mp_payment_id = $data['id'] ?? null;
 
                 if ($mp_payment_id) {
                     $payment = Payment::where('mercado_pago_payment_id', $mp_payment_id)->first();
@@ -192,7 +201,7 @@ class PixTransparenteController extends Controller
 
                         if ($mp_payment->status === 'approved') {
                             $payment->update([
-                                'status' => 'completed',
+                                'status' => 'approved',
                                 'paid_at' => now(),
                             ]);
 
@@ -204,6 +213,8 @@ class PixTransparenteController extends Controller
                                 ],
                                 ['enrolled_at' => now()]
                             );
+                            
+                            \Log::info('Pagamento aprovado via webhook', ['payment_id' => $payment->id]);
                         }
                     }
                 }
@@ -212,7 +223,9 @@ class PixTransparenteController extends Controller
             return response()->json(['received' => true], 200);
 
         } catch (\Exception $e) {
-            \Log::error('Webhook Mercado Pago error: ' . $e->getMessage());
+            \Log::error('Webhook Mercado Pago error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['received' => true], 200); // Sempre retorna 200 pro MP
         }
     }
