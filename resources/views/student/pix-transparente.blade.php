@@ -138,17 +138,23 @@ async function gerarPix() {
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('qr-code-container').classList.remove('hidden');
 
-        // Gerar QR Code visual
-        new QRCode(document.getElementById('qr-code'), {
-            text: data.qr_code,
-            width: 200,
-            height: 200,
-            colorDark: '#000',
-            colorLight: '#fff',
-        });
+        // Renderizar QR Code usando a imagem base64
+        if (data.qr_code_base64) {
+            const qrContainer = document.getElementById('qr-code');
+            qrContainer.innerHTML = `<img src="data:image/png;base64,${data.qr_code_base64}" alt="QR Code PIX" style="width: 200px; height: 200px;">`;
+        } else {
+            // Fallback: se não tiver base64, usar a biblioteca qrcode.js com o código
+            new QRCode(document.getElementById('qr-code'), {
+                text: data.qr_code,
+                width: 200,
+                height: 200,
+                colorDark: '#000',
+                colorLight: '#fff',
+            });
+        }
 
-        // Exibir código PIX
-        document.getElementById('pix-code').value = data.copy_paste;
+        // Exibir código PIX (copia e cola)
+        document.getElementById('pix-code').value = data.qr_code || 'Código indisponível';
 
     } catch (error) {
         console.error('Erro:', error);

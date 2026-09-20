@@ -122,17 +122,16 @@ class PaymentController extends Controller
                 'status' => 'pending',
                 'method' => 'pix',
                 'metadata' => [
+                    'qr_code_base64' => $mpPayment->point_of_interaction?->transaction_data?->qr_code_base64,
                     'qr_code' => $mpPayment->point_of_interaction?->transaction_data?->qr_code,
-                    'copy_paste' => $mpPayment->point_of_interaction?->transaction_data?->copy_and_paste,
                 ],
             ]);
 
-            // Retornar QR Code e dados PIX
+            // Retornar QR Code e dados PIX (conforme documentação oficial MP)
             return response()->json([
                 'payment_id' => $mpPayment->id,
-                'qr_code' => $mpPayment->point_of_interaction?->transaction_data?->qr_code,
-                'qr_code_base64' => $mpPayment->point_of_interaction?->transaction_data?->qr_code_base64,
-                'copy_paste' => $mpPayment->point_of_interaction?->transaction_data?->copy_and_paste,
+                'qr_code_base64' => $mpPayment->point_of_interaction?->transaction_data?->qr_code_base64,  // Imagem base64
+                'qr_code' => $mpPayment->point_of_interaction?->transaction_data?->qr_code,  // Código copia e cola
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
