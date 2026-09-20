@@ -186,7 +186,7 @@ Route::middleware('auth:api')->group(function () {
     });
 
     // ==================== PIX TRANSPARENTE ====================
-    Route::prefix('payments/pix')->group(function () {
+    Route::middleware('auth:api')->prefix('payments/pix')->group(function () {
         Route::post('/gerar', [PixTransparenteController::class, 'gerarPix']);
         Route::get('/{payment_id}/status', [PixTransparenteController::class, 'verificarStatus']);
         Route::post('/{payment_id}/cancel', [PixTransparenteController::class, 'cancelarPagamento']);
