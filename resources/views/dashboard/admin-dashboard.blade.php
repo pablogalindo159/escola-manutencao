@@ -51,13 +51,6 @@
                     <p class="font-semibold text-gray-900">Mercado Pago</p>
                     <p class="text-xs text-green-600 font-semibold">Configurar</p>
                 </a>
-
-                <!-- Usuários -->
-                <a href="{{ route('admin.users') }}" class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition text-center">
-                    <div class="text-3xl mb-2">👥</div>
-                    <p class="font-semibold text-gray-900">Usuários</p>
-                    <p class="text-xs text-gray-600">Gerenciar usuários</p>
-                </a>
             </div>
         </div>
 
