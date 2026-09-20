@@ -1,0 +1,67 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Setting;
+use Illuminate\Http\Request;
+
+class SettingsController extends Controller
+{
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('admin');
+    }
+
+    /**
+     * Página de configurações Mercado Pago
+     */
+    public function mercadoPago()
+    {
+        $mpSettings = [
+            'access_token' => Setting::get('mercado_pago_access_token'),
+            'public_key' => Setting::get('mercado_pago_public_key'),
+            'webhook_secret' => Setting::get('mercado_pago_webhook_secret'),
+            'environment' => Setting::get('mercado_pago_environment', 'sandbox'),
+        ];
+
+        return view('admin.settings.mercado-pago', compact('mpSettings'));
+    }
+
+    /**
+     * Salvar configurações Mercado Pago
+     */
+    public function updateMercadoPago(Request $request)
+    {
+        $validated = $request->validate([
+            'access_token' => 'required|string|min:10',
+            'public_key' => 'required|string|min:10',
+            'webhook_secret' => 'required|string|min:5',
+            'environment' => 'required|in:sandbox,production',
+        ], [
+            'access_token.required' => 'Access Token é obrigatório',
+            'public_key.required' => 'Public Key é obrigatória',
+            'webhook_secret.required' => 'Webhook Secret é obrigatório',
+            'environment.required' => 'Ambiente é obrigatório',
+        ]);
+
+        Setting::set('mercado_pago_access_token', $validated['access_token'], 'string', 'Token de acesso Mercado Pago');
+        Setting::set('mercado_pago_public_key', $validated['public_key'], 'string', 'Chave pública Mercado Pago');
+        Setting::set('mercado_pago_webhook_secret', $validated['webhook_secret'], 'string', 'Secret para validar webhooks');
+        Setting::set('mercado_pago_environment', $validated['environment'], 'string', 'Ambiente (sandbox ou production)');
+
+        return redirect()->route('admin.settings.mercado-pago')
+            ->with('success', '✅ Credenciais Mercado Pago atualizadas com sucesso!');
+    }
+
+    /**
+     * Listar todas as configurações (opcional)
+     */
+    public function index()
+    {
+        $settings = Setting::orderBy('key')->paginate(20);
+
+        return view('admin.settings.index', compact('settings'));
+    }
+}
