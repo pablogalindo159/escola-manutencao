@@ -165,7 +165,9 @@ class MercadoPagoService
         $qrCode = $paymentMethod['qr_code'] ?? null;
         $qrCodeBase64 = $paymentMethod['qr_code_base64'] ?? null;
 
-        if (!$qrCode || !$qrCodeBase64) {
+        // qr_code é obrigatório. qr_code_base64 é opcional
+        // (a view tem fallback com QRCode.js)
+        if (!$qrCode) {
             return null;
         }
 
