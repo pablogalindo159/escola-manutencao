@@ -198,28 +198,6 @@ class MercadoPagoService
     }
 
     /**
-     * Extrair QR Code do response da Order
-     */
-    public static function extractQrCodeFromOrder(array $orderResponse): ?array
-    {
-        // Estrutura esperada: payments[0].transaction_data.qr_code
-        $payment = $orderResponse['payments'][0] ?? null;
-        if (!$payment) {
-            return null;
-        }
-
-        $transactionData = $payment['transaction_data'] ?? null;
-        if (!$transactionData) {
-            return null;
-        }
-
-        return [
-            'qr_code' => $transactionData['qr_code'] ?? null,
-            'qr_code_base64' => $transactionData['qr_code_base64'] ?? null,
-        ];
-    }
-
-    /**
      * Extrair QR Code do response do pagamento (Legacy Payments API)
      */
     public static function extractQrCodeFromPayment(array $paymentResponse): ?array
