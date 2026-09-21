@@ -76,7 +76,7 @@
         <div id="error-container" class="bg-red-50 border border-red-200 rounded p-4 text-center hidden">
             <p class="text-red-700 text-sm" id="error-message"></p>
             <button 
-                onclick="window.location.href = '{{ route(\"student.courses.checkout\", $course) }}'" 
+                onclick="window.location.href = '{{ route('student.courses.checkout', $course) }}'" 
                 class="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition text-sm w-full"
             >
                 Tentar Novamente
