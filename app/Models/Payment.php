@@ -15,10 +15,14 @@ class Payment extends Model
         'subscription_id',
         'amount',
         'mercado_pago_payment_id',
+        'mercado_pago_order_id',
         'mercado_pago_preference_id',
+        'external_reference',
         'mercado_pago_order_id',         // ✅ NOVO: para PIX Transparente
         'external_reference',             // ✅ NOVO: para webhook tracking
         'status',
+        'qr_code',
+        'qr_code_base64',
         'method',
         'paid_at',
         'metadata',
@@ -52,16 +56,22 @@ class Payment extends Model
     public function scopeApproved($query)
     {
         return $query->where('status', 'approved');
+        'qr_code',
+        'qr_code_base64',
     }
 
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
+        'qr_code',
+        'qr_code_base64',
     }
 
     public function scopeRejected($query)
     {
         return $query->where('status', 'rejected');
+        'qr_code',
+        'qr_code_base64',
     }
 
     public function scopeByMethod($query, $method)
