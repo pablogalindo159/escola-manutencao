@@ -2,13 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Payment extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'user_id',
         'course_id',
@@ -18,8 +17,6 @@ class Payment extends Model
         'mercado_pago_order_id',
         'mercado_pago_preference_id',
         'external_reference',
-        'mercado_pago_order_id',         // ✅ NOVO: para PIX Transparente
-        'external_reference',             // ✅ NOVO: para webhook tracking
         'status',
         'qr_code',
         'qr_code_base64',
@@ -32,22 +29,20 @@ class Payment extends Model
         'amount' => 'decimal:2',
         'paid_at' => 'datetime',
         'metadata' => 'json',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
     ];
 
     // Relationships
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function course()
+    public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
     }
 
-    public function subscription()
+    public function subscription(): BelongsTo
     {
         return $this->belongsTo(Subscription::class);
     }
@@ -56,22 +51,16 @@ class Payment extends Model
     public function scopeApproved($query)
     {
         return $query->where('status', 'approved');
-        'qr_code',
-        'qr_code_base64',
     }
 
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
-        'qr_code',
-        'qr_code_base64',
     }
 
     public function scopeRejected($query)
     {
         return $query->where('status', 'rejected');
-        'qr_code',
-        'qr_code_base64',
     }
 
     public function scopeByMethod($query, $method)
@@ -80,42 +69,28 @@ class Payment extends Model
     }
 
     // Methods
-    public function isApproved()
+    public function markAsApproved(): void
     {
-        return $this->status === 'approved';
-    }
+        if ($this->status !== 'approved') {
+            $this->update(['status' => 'approved', 'paid_at' => now()]);
+        }
 
-    public function isPending()
-    {
-        return $this->status === 'pending';
-    }
-
-    public function isRejected()
-    {
-        return $this->status === 'rejected';
-    }
-
-    public function markAsApproved()
-    {
-        $this->update([
-            'status' => 'approved',
-            'paid_at' => now(),
-        ]);
-
-        // Activate subscription
-        if ($this->subscription) {
-            $this->subscription->update(['status' => 'active']);
+        if ($this->course_id && $this->user_id) {
+            $this->user->courses()->syncWithoutDetaching([$this->course_id]);
+            \Log::info('✅ Usuário adicionado ao curso', [
+                'user_id' => $this->user_id,
+                'course_id' => $this->course_id,
+            ]);
         }
     }
 
-    public function markAsRejected($reason = null)
+    public function markAsRejected(): void
     {
-        $metadata = $this->metadata ?? [];
-        $metadata['rejection_reason'] = $reason;
+        $this->update(['status' => 'rejected']);
+    }
 
-        $this->update([
-            'status' => 'rejected',
-            'metadata' => $metadata,
-        ]);
+    public function markAsPending(): void
+    {
+        $this->update(['status' => 'pending']);
     }
 }
