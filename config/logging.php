@@ -22,6 +22,18 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
         ],
+        'payments' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/payments.log'),
+            'level' => 'debug',
+            'days' => 14,
+        ],
+        'mercado-pago' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/mercado-pago.log'),
+            'level' => 'debug',
+            'days' => 14,
+        ],
         'null' => [
             'driver' => 'monolog',
             'handler' => NullHandler::class,

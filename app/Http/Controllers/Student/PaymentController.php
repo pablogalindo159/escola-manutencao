@@ -4,14 +4,18 @@ namespace App\Http\Controllers\Student;
 
 use App\Models\Course;
 use App\Models\Payment;
-use App\Models\User;
+use App\Services\LoggingService;
 use App\Services\MercadoPagoService;
+use App\Traits\PaymentMethodsTrait;
+use App\Exceptions\MercadoPagoException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log as LogFacade;
 
 class PaymentController
 {
+    use PaymentMethodsTrait;
+
     protected MercadoPagoService $mercadoPago;
 
     public function __construct(MercadoPagoService $mercadoPago)
@@ -20,55 +24,44 @@ class PaymentController
     }
 
     /**
-     * GET /minha-area/cursos/{course}
-     * Rota inicial: redireciona para PIX ou Checkout Pro
+     * GET /minha-area/cursos/{course}/checkout
      */
     public function checkout(Request $request, Course $course)
     {
         $user = Auth::user();
 
-        // Verificar se já comprou
-        $existingPayment = Payment::where('user_id', $user->id)
+        $hasAccess = Payment::where('user_id', $user->id)
             ->where('course_id', $course->id)
             ->whereIn('status', ['approved', 'paid'])
-            ->first();
+            ->exists();
 
-        if ($existingPayment) {
+        if ($hasAccess) {
             return redirect()->route('student.course.show', $course->id)
                 ->with('success', 'Você já tem acesso a este curso!');
         }
 
-        // Determinar método: PIX ou Checkout Pro
         $paymentMethod = $this->getPaymentMethod();
 
-        if ($paymentMethod === 'pix_transparent') {
-            return view('student.pix-transparente', compact('course'));
+        $view = $paymentMethod === 'pix_transparent'
+            ? 'student.pix-transparente'
+            : 'student.checkout-pro';
+
+        if (!view()->exists($view)) {
+            LogFacade::warning('View não existe', ['view' => $view]);
+            $view = 'student.pix-transparente';
         }
 
-        // Checkout Pro - tentar carregar view, se não existir redireciona
-        if (view()->exists('student.checkout-pro')) {
-            return view('student.checkout-pro', compact('course'));
-        }
-
-        // Fallback: se view não existir, usar PIX Transparente
-        LogFacade::warning('View checkout-pro não existe, usando pix-transparente como fallback', [
-            'course_id' => $course->id,
-            'user_id' => $user->id,
-        ]);
-
-        return view('student.pix-transparente', compact('course'));
+        return view($view, compact('course'));
     }
 
     /**
      * POST /minha-area/cursos/{course}/gerar-pix
-     * 🚀 NOVO: Gera Order com PIX Transparente via Orders API
      */
     public function gerarPix(Request $request, Course $course)
     {
         try {
             $user = Auth::user();
 
-            // Validar se já tem pagamento
             $existingPayment = Payment::where('user_id', $user->id)
                 ->where('course_id', $course->id)
                 ->first();
@@ -79,7 +72,13 @@ class PaymentController
                 ], 400);
             }
 
-            // ✨ CHAMAR ORDERS API
+            if (empty($this->mercadoPago->accessToken())) {
+                throw new MercadoPagoException(MercadoPagoException::TYPE_INVALID_TOKEN);
+            }
+
+            LoggingService::apiCallStarted('/v1/orders', 'POST');
+            
+            $startTime = microtime(true);
             $orderResponse = $this->mercadoPago->createOrderPix(
                 courseId: $course->id,
                 courseTitle: $course->title,
@@ -88,53 +87,38 @@ class PaymentController
                 payerName: $user->name,
                 payerEmail: $user->email
             );
+            
+            $durationMs = (int) ((microtime(true) - $startTime) * 1000);
+            LoggingService::apiCallCompleted('/v1/orders', 200, $durationMs);
 
-            // Validar resposta
-            if (empty($orderResponse['id'])) {
-                LogFacade::error('Orders API error', [
-                    'course_id' => $course->id,
-                    'user_id' => $user->id,
-                    'response' => $orderResponse,
-                ]);
-
-                return response()->json([
-                    'error' => 'Erro ao gerar QR Code PIX',
-                    'details' => $orderResponse['message'] ?? 'Resposta inválida',
-                ], 500);
+            if (empty($orderResponse['id']) || empty($orderResponse['payments'])) {
+                throw new MercadoPagoException(
+                    MercadoPagoException::TYPE_INVALID_RESPONSE,
+                    $orderResponse
+                );
             }
 
             $orderId = $orderResponse['id'];
             $payment = $orderResponse['payments'][0] ?? null;
 
             if (!$payment || empty($payment['id'])) {
-                LogFacade::error('Orders API: payment not found', [
-                    'order_id' => $orderId,
-                    'response' => $orderResponse,
-                ]);
-
-                return response()->json([
-                    'error' => 'Payment não encontrado na resposta',
-                ], 500);
+                throw new MercadoPagoException(
+                    MercadoPagoException::TYPE_INVALID_RESPONSE,
+                    $orderResponse
+                );
             }
 
             $paymentId = $payment['id'];
 
-            // Extrair QR Code
             $qrData = MercadoPagoService::extractQrCodeFromOrder($orderResponse);
 
             if (!$qrData || !$qrData['qr_code']) {
-                LogFacade::error('Orders API: QR Code not found', [
-                    'order_id' => $orderId,
-                    'payment_id' => $paymentId,
-                    'payment_response' => $payment,
-                ]);
-
-                return response()->json([
-                    'error' => 'QR Code não gerado',
-                ], 500);
+                throw new MercadoPagoException(
+                    MercadoPagoException::TYPE_INVALID_RESPONSE,
+                    $payment
+                );
             }
 
-            // 💾 Salvar Payment no banco
             $paymentRecord = Payment::create([
                 'user_id' => $user->id,
                 'course_id' => $course->id,
@@ -148,13 +132,14 @@ class PaymentController
                 ],
             ]);
 
-            LogFacade::info('Payment criado via Orders API', [
-                'payment_id' => $paymentRecord->id,
+            LoggingService::paymentCreated($paymentRecord, [
                 'mp_order_id' => $orderId,
                 'mp_payment_id' => $paymentId,
             ]);
 
-            // Retornar QR Code para frontend
+            \App\Jobs\CheckPaymentStatus::dispatch($paymentRecord)
+                ->delay(now()->addSeconds(5));
+
             return response()->json([
                 'payment_id' => $paymentRecord->id,
                 'order_id' => $orderId,
@@ -162,29 +147,40 @@ class PaymentController
                 'qr_code_base64' => $qrData['qr_code_base64'],
             ], 200);
 
-        } catch (\Exception $e) {
-            LogFacade::error('PaymentController::gerarPix exception', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
+        } catch (MercadoPagoException $e) {
+            LoggingService::paymentFailed(null, $e->getMessage(), ['type' => $e->type]);
+
+            return response()->json(
+                $e->toJson(),
+                $e->getHttpStatusCode()
+            );
+
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            LogFacade::error('Connection error to Mercado Pago', ['error' => $e->getMessage()]);
 
             return response()->json([
-                'error' => 'Erro interno ao gerar PIX',
-                'message' => $e->getMessage(),
+                'error' => 'connection_error',
+                'message' => 'Erro de conexão com Mercado Pago',
+            ], 503);
+
+        } catch (\Exception $e) {
+            LogFacade::error('Unexpected error in gerarPix', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'error' => 'internal_error',
+                'message' => 'Erro interno do servidor',
             ], 500);
         }
     }
 
     /**
      * GET /minha-area/cursos/{course}/status-pix/{paymentId}
-     * Verifica status do pagamento (polling frontend)
      */
     public function statusPix(Request $request, Course $course, string $paymentId)
     {
         try {
             $user = Auth::user();
 
-            // Buscar Payment no banco
             $payment = Payment::where('id', $paymentId)
                 ->where('user_id', $user->id)
                 ->where('course_id', $course->id)
@@ -196,57 +192,27 @@ class PaymentController
                 ], 404);
             }
 
-            // Se já aprovado, retornar status
             if ($payment->status === 'approved') {
                 return response()->json([
                     'status' => 'approved',
-                    'payment_id' => $payment->id,
                     'message' => 'Pagamento aprovado! Acesso liberado.',
                 ], 200);
             }
 
-            // Consultar status na API MP
-            $mpPaymentId = $payment->mercado_pago_payment_id;
-
-            if (!$mpPaymentId) {
+            if ($payment->status === 'rejected') {
                 return response()->json([
-                    'status' => 'pending',
-                    'message' => 'Aguardando pagamento...',
-                ], 200);
-            }
-
-            // Chamar API MP
-            $mpResponse = $this->mercadoPago->getPaymentStatus($mpPaymentId);
-
-            $mpStatus = $mpResponse['status'] ?? 'unknown';
-
-            // Atualizar banco se houver mudança
-            if ($mpStatus === 'approved' && $payment->status !== 'approved') {
-                $payment->update([
-                    'status' => 'approved',
-                    'paid_at' => now(),
-                ]);
-
-                LogFacade::info('Payment aprovado via polling', [
-                    'payment_id' => $payment->id,
-                    'mp_payment_id' => $mpPaymentId,
-                ]);
-
-                return response()->json([
-                    'status' => 'approved',
-                    'message' => 'Pagamento aprovado! Acesso liberado.',
+                    'status' => 'rejected',
+                    'message' => 'Pagamento foi recusado.',
                 ], 200);
             }
 
             return response()->json([
-                'status' => $mpStatus,
-                'message' => 'Aguardando pagamento...',
+                'status' => 'pending',
+                'message' => 'Aguardando confirmação do pagamento...',
             ], 200);
 
         } catch (\Exception $e) {
-            LogFacade::error('PaymentController::statusPix exception', [
-                'message' => $e->getMessage(),
-            ]);
+            LogFacade::error('Error in statusPix', ['error' => $e->getMessage()]);
 
             return response()->json([
                 'status' => 'error',
@@ -257,7 +223,6 @@ class PaymentController
 
     /**
      * GET /checkout/retorno
-     * Callback do Checkout Pro
      */
     public function returnFromCheckout(Request $request)
     {
@@ -275,17 +240,5 @@ class PaymentController
 
         return view('student.checkout-pending')
             ->with('message', 'Pagamento em análise.');
-    }
-
-    /**
-     * Determinar método de pagamento (PIX ou Checkout Pro)
-     * Lê da Setting.payment_method
-     */
-    private function getPaymentMethod(): string
-    {
-        $paymentMethod = \App\Models\Setting::where('key', 'payment_method')
-            ->first()?->value;
-
-        return $paymentMethod === 'pix_transparent' ? 'pix_transparent' : 'checkout_pro';
     }
 }
