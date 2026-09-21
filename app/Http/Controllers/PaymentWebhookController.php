@@ -12,15 +12,19 @@ class PaymentWebhookController extends Controller
     {
         $xSignature = $request->header('X-Signature');
         $xRequestId = $request->header('X-Request-Id');
-        
-        // O Mercado Pago envia data.id na query string.
-        // Aceitamos também data_id caso o PHP normalize o ponto.
+
         $dataId = (string) (
             $request->query('data.id')
             ?? $request->query('data_id')
             ?? ''
         );
         $type = (string) ($request->query('type') ?? '');
+
+        Log::info('Webhook MP: parâmetros recebidos', [
+            'query_params' => $request->query(),
+            'x_signature' => $xSignature,
+            'x_request_id' => $xRequestId,
+        ]);
 
         if (!$xSignature || !$xRequestId || !$dataId) {
             Log::warning('Webhook MP: dados obrigatórios ausentes', [
@@ -32,7 +36,6 @@ class PaymentWebhookController extends Controller
             return response()->json(['error' => 'Invalid notification'], 400);
         }
 
-        // Parsear X-Signature: ts=...,v1=...
         $parts = [];
         foreach (explode(',', $xSignature) as $part) {
             $keyValue = explode('=', $part, 2);
@@ -46,14 +49,11 @@ class PaymentWebhookController extends Controller
         $v1 = $parts['v1'] ?? null;
 
         if (!$ts || !$v1) {
-            Log::warning('Webhook MP: x-signature inválido');
+            Log::warning('Webhook MP: x-signature inválido', ['parts' => $parts]);
             return response()->json(['error' => 'Invalid signature'], 401);
         }
 
-        // Usar data.id exatamente como recebido (sem modificações)
         $signatureId = $dataId;
-
-        // Obter secret do Admin ou config
         $secret = \App\Models\Setting::get(
             'mercado_pago_webhook_secret',
             config('services.mercadopago.webhook_secret', '')
@@ -64,11 +64,27 @@ class PaymentWebhookController extends Controller
             return response()->json(['error' => 'Server error'], 500);
         }
 
-        // Manifest conforme documentação oficial
-        $manifest = "id:{$signatureId};request-id:{$xRequestId};ts:{$ts};";
-        $expected = hash_hmac('sha256', $manifest, $secret);
+        $manifest1 = "id:{$signatureId};request-id:{$xRequestId};ts:{$ts}";
+        $expected1 = hash_hmac('sha256', $manifest1, $secret);
 
-        if (!hash_equals($expected, $v1)) {
+        $manifest2 = "id:{$signatureId};request-id:{$xRequestId};ts:{$ts};";
+        $expected2 = hash_hmac('sha256', $manifest2, $secret);
+
+        Log::info('Webhook MP: HMAC debug', [
+            'manifest_sem_semicolon' => $manifest1,
+            'hmac_sem_semicolon' => $expected1,
+            'v1_recebido' => $v1,
+            'match_sem_semicolon' => hash_equals($expected1, $v1) ? 'TRUE' : 'FALSE',
+            'manifest_com_semicolon' => $manifest2,
+            'hmac_com_semicolon' => $expected2,
+            'match_com_semicolon' => hash_equals($expected2, $v1) ? 'TRUE' : 'FALSE',
+        ]);
+
+        if (hash_equals($expected1, $v1)) {
+            Log::info('Webhook MP: ✅ assinatura válida (SEM semicolon)');
+        } else if (hash_equals($expected2, $v1)) {
+            Log::info('Webhook MP: ✅ assinatura válida (COM semicolon)');
+        } else {
             Log::warning('Webhook MP: assinatura inválida', [
                 'request_id' => $xRequestId,
                 'type' => $type,
@@ -79,7 +95,6 @@ class PaymentWebhookController extends Controller
         $data = $request->json()->all();
         $action = $data['action'] ?? null;
 
-        // ========== ORDERS API ==========
         if ($type === 'order') {
             $orderId = $dataId;
             $order = $this->getMercadoPagoOrderData($orderId);
@@ -98,9 +113,7 @@ class PaymentWebhookController extends Controller
             }
 
             if (!$payment) {
-                Log::warning('Webhook MP: Order não encontrada no banco', [
-                    'order_id' => $orderId,
-                ]);
+                Log::warning('Webhook MP: Order não encontrada', ['order_id' => $orderId]);
                 return response()->json(['success' => true], 200);
             }
 
@@ -123,7 +136,6 @@ class PaymentWebhookController extends Controller
             return response()->json(['success' => true], 200);
         }
 
-        // ========== CHECKOUT PRO / PAYMENTS API ==========
         if ($type === 'payment') {
             $paymentId = $data['data']['id'] ?? $dataId;
             $mpPaymentData = $this->getMercadoPagoPaymentData($paymentId);
@@ -135,9 +147,7 @@ class PaymentWebhookController extends Controller
             $payment = Payment::where('mercado_pago_payment_id', $paymentId)->first();
 
             if (!$payment) {
-                Log::warning('Webhook MP: Payment não encontrado', [
-                    'payment_id' => $paymentId,
-                ]);
+                Log::warning('Webhook MP: Payment não encontrado', ['payment_id' => $paymentId]);
                 return response()->json(['success' => true], 200);
             }
 
