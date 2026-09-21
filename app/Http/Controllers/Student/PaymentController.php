@@ -57,6 +57,11 @@ class PaymentController
 
     /**
      * POST /minha-area/cursos/{course}/criar-preference
+     * 
+     * ✅ FASE 4: Checkout Pro correto
+     * - Criar Payment local ANTES de redirecionar
+     * - Usar external_reference para webhook tracking
+     * - Salvar preference_id após criar no MP
      */
     public function criarPreference(Request $request, Course $course)
     {
@@ -77,6 +82,9 @@ class PaymentController
                 throw new MercadoPagoException(MercadoPagoException::TYPE_INVALID_TOKEN);
             }
 
+            // ✅ FASE 4: NOVO - Gerar external_reference para tracking
+            $externalReference = "checkout_pro_{$course->id}_" . \Illuminate\Support\Str::uuid();
+
             LoggingService::apiCallStarted('/v1/checkout/preferences', 'POST');
             
             $startTime = microtime(true);
@@ -87,20 +95,42 @@ class PaymentController
                 'amount' => (float) $course->price,
                 'payer_name' => $user->name,
                 'payer_email' => $user->email,
+                'external_reference' => $externalReference,  // ✅ FASE 4: NOVO
             ]);
             
             $durationMs = (int) ((microtime(true) - $startTime) * 1000);
             LoggingService::apiCallCompleted('/v1/checkout/preferences', 200, $durationMs);
 
-            if (empty($preference['init_point'])) {
+            if (empty($preference['init_point']) || empty($preference['id'])) {
                 throw new MercadoPagoException(
                     MercadoPagoException::TYPE_INVALID_RESPONSE,
                     $preference
                 );
             }
 
+            // ✅ FASE 4: NOVO - Criar Payment local ANTES de redirecionar
+            // Isso permite webhook encontrar o pedido quando Checkout Pro voltar
+            $paymentRecord = Payment::create([
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+                'amount' => $course->price,
+                'mercado_pago_preference_id' => $preference['id'],
+                'external_reference' => $externalReference,
+                'status' => 'pending',
+                'method' => 'checkout_pro',
+                'metadata' => [
+                    'preference_response' => $preference,
+                ],
+            ]);
+
+            LoggingService::paymentCreated($paymentRecord, [
+                'mp_preference_id' => $preference['id'],
+                'checkout_pro_url' => $preference['init_point'],
+            ]);
+
             return response()->json([
                 'checkout_pro_url' => $preference['init_point'],
+                'payment_id' => $paymentRecord->id,  // ✅ FASE 4: NOVO - retornar payment_id
             ], 200);
 
         } catch (MercadoPagoException $e) {

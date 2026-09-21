@@ -126,7 +126,8 @@ class PaymentWebhookController extends Controller
     }
 
     /**
-     * ✨ NOVO: Processar webhook de ORDER (Orders API)
+     * ✨ NOVO: Processar webhook de ORDER (Orders API - PIX Transparente)
+     * ✅ FASE 4: Consultar Order real e liberar curso se aprovado
      */
     private function handleOrderWebhook(string $orderId, Request $request): \Illuminate\Http\JsonResponse
     {
@@ -143,23 +144,79 @@ class PaymentWebhookController extends Controller
             'payment_id' => $payment->id,
         ]);
 
-        // ⚠️ Nota: O webhook de order é genérico
-        // Precisamos fazer polling do status da order/payment para confirmar aprovação
-        // Isso é feito via statusPix() no frontend (polling)
-        // ou podemos disparar uma job para verificar em background
+        try {
+            // ✅ FASE 4: Consultar a Order REAL da API (não confiar cegamente no webhook)
+            $mercadoPago = app(\App\Services\MercadoPagoService::class);
+            $response = $mercadoPago->getOrderStatus($orderId);
 
-        // Para segurança máxima, recomendo validar via API
-        // Mas por enquanto, apenas logar que foi recebido
+            // ✅ Ler status do local correto para Orders API
+            $mpStatus = $response['transactions']['payments'][0]['status'] ?? null;
 
-        Log::info('Order webhook: aguardando validação via API', [
-            'order_id' => $orderId,
-        ]);
+            Log::info('Order webhook: status obtido da API', [
+                'order_id' => $orderId,
+                'payment_id' => $payment->id,
+                'mp_status' => $mpStatus,
+            ]);
+
+            // ✅ FASE 4: Atualizar status se aprovado
+            if ($mpStatus === 'approved') {
+                $payment->update([
+                    'status' => 'approved',
+                    'paid_at' => now(),
+                ]);
+
+                // Criar/atualizar subscription para liberar acesso
+                \App\Models\Subscription::updateOrCreate(
+                    [
+                        'user_id' => $payment->user_id,
+                        'course_id' => $payment->course_id,
+                    ],
+                    [
+                        'status' => 'active',
+                        'expires_at' => now()->addYears(1),
+                    ]
+                );
+
+                Log::info('Order aprovada via webhook - PIX confirmado, curso liberado', [
+                    'order_id' => $orderId,
+                    'payment_id' => $payment->id,
+                    'course_id' => $payment->course_id,
+                    'user_id' => $payment->user_id,
+                ]);
+
+                LoggingService::paymentApproved($payment, $response);
+            } else if (in_array($mpStatus, ['rejected', 'cancelled', 'refunded'])) {
+                $payment->update(['status' => 'rejected']);
+                
+                Log::warning('Order rejeitada via webhook', [
+                    'order_id' => $orderId,
+                    'payment_id' => $payment->id,
+                    'mp_status' => $mpStatus,
+                ]);
+
+                LoggingService::paymentFailed($payment, "Order {$mpStatus}");
+            } else {
+                Log::info('Order webhook: status ainda pendente', [
+                    'order_id' => $orderId,
+                    'payment_id' => $payment->id,
+                    'mp_status' => $mpStatus,
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Order webhook: erro ao consultar API', [
+                'order_id' => $orderId,
+                'payment_id' => $payment->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json(['status' => 'ok'], 200);
     }
 
     /**
      * ⚠️ LEGADO: Processar webhook de PAYMENT (Payments API - será deprecado)
+     * ✅ FASE 4: Atualizado para consultar Order real e liberar curso
      */
     private function handlePaymentWebhook(string $paymentId, Request $request): \Illuminate\Http\JsonResponse
     {
@@ -171,18 +228,79 @@ class PaymentWebhookController extends Controller
             return response()->json(['status' => 'ok'], 200);
         }
 
-        Log::info('Payment webhook processando (LEGADO)', [
+        Log::info('Payment webhook processando', [
             'payment_id' => $paymentId,
             'internal_payment_id' => $payment->id,
+            'method' => $payment->method,
         ]);
 
-        // Chamar API para obter status completo
-        // (webhook só traz ID, não traz status)
-        // Isso é feito em background job ou via polling
+        try {
+            // ✅ FASE 4: Consultar a Order/Payment REAL da API (não confiar cegamente no webhook)
+            $mercadoPago = app(\App\Services\MercadoPagoService::class);
+            
+            if ($payment->mercado_pago_order_id) {
+                // PIX Transparente: consultar /v1/orders
+                $response = $mercadoPago->getOrderStatus($payment->mercado_pago_order_id);
+                $mpStatus = $response['transactions']['payments'][0]['status'] ?? null;
+            } else {
+                // Checkout Pro: consultar /v1/payments
+                $response = $mercadoPago->getPaymentStatus($paymentId);
+                $mpStatus = $response['status'] ?? null;
+            }
 
-        Log::info('Payment webhook recebido (validação pendente)', [
-            'payment_id' => $paymentId,
-        ]);
+            Log::info('Payment webhook: status obtido da API', [
+                'payment_id' => $payment->id,
+                'mp_status' => $mpStatus,
+            ]);
+
+            // ✅ FASE 4: Atualizar status se aprovado
+            if ($mpStatus === 'approved') {
+                $payment->update([
+                    'status' => 'approved',
+                    'paid_at' => now(),
+                ]);
+
+                // Criar/atualizar subscription para liberar acesso
+                \App\Models\Subscription::updateOrCreate(
+                    [
+                        'user_id' => $payment->user_id,
+                        'course_id' => $payment->course_id,
+                    ],
+                    [
+                        'status' => 'active',
+                        'expires_at' => now()->addYears(1),
+                    ]
+                );
+
+                Log::info('Payment aprovado via webhook - curso liberado', [
+                    'payment_id' => $payment->id,
+                    'course_id' => $payment->course_id,
+                    'user_id' => $payment->user_id,
+                ]);
+
+                LoggingService::paymentApproved($payment, $response);
+            } else if (in_array($mpStatus, ['rejected', 'cancelled', 'refunded'])) {
+                $payment->update(['status' => 'rejected']);
+                
+                Log::warning('Payment rejeitado via webhook', [
+                    'payment_id' => $payment->id,
+                    'mp_status' => $mpStatus,
+                ]);
+
+                LoggingService::paymentFailed($payment, "Payment {$mpStatus}");
+            } else {
+                Log::info('Payment webhook: status pendente', [
+                    'payment_id' => $payment->id,
+                    'mp_status' => $mpStatus,
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Payment webhook: erro ao consultar API', [
+                'payment_id' => $payment->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json(['status' => 'ok'], 200);
     }
