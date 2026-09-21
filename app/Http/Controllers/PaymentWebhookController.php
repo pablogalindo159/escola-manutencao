@@ -12,10 +12,23 @@ class PaymentWebhookController extends Controller
     {
         $xSignature = $request->header('X-Signature');
         $xRequestId = $request->header('X-Request-Id');
-        $dataId = (string) $request->query('data.id', '');
+        
+        // O Mercado Pago envia data.id na query string.
+        // Aceitamos também data_id caso o PHP normalize o ponto.
+        $dataId = (string) (
+            $request->query('data.id')
+            ?? $request->query('data_id')
+            ?? ''
+        );
+        $type = (string) ($request->query('type') ?? '');
 
         if (!$xSignature || !$xRequestId || !$dataId) {
-            Log::warning('Webhook MP: headers/query obrigatórios ausentes');
+            Log::warning('Webhook MP: dados obrigatórios ausentes', [
+                'has_x_signature' => !empty($xSignature),
+                'has_x_request_id' => !empty($xRequestId),
+                'has_data_id' => !empty($dataId),
+                'query_keys' => array_keys($request->query()),
+            ]);
             return response()->json(['error' => 'Invalid notification'], 400);
         }
 
