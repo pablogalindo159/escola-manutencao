@@ -11,14 +11,27 @@ class PaymentWebhookController extends Controller
     /**
      * POST /api/webhooks/mercadopago
      * Webhook único para ORDERS e PAYMENTS (transição suave)
+     * ✅ FASE 3: Validação HMAC com x-signature (obrigatório)
      */
     public function handle(Request $request)
     {
         try {
+            // ✅ FASE 3: NOVO - Validar assinatura HMAC antes de processar
+            if (!$this->validateWebhookSignature($request)) {
+                Log::warning('Webhook rejeitado: assinatura inválida', [
+                    'x-signature' => $request->header('x-signature'),
+                    'x-request-id' => $request->header('x-request-id'),
+                    'data-id' => $request->input('data.id'),
+                ]);
+                
+                return response()->json(['error' => 'Invalid signature'], 401);
+            }
+
             // Log de entrada
-            Log::info('Webhook Mercado Pago recebido', [
+            Log::info('Webhook Mercado Pago recebido (validado)', [
                 'type' => $request->input('type'),
                 'data' => $request->input('data'),
+                'request-id' => $request->header('x-request-id'),
             ]);
 
             $type = $request->input('type');
@@ -55,6 +68,61 @@ class PaymentWebhookController extends Controller
 
             return response()->json(['status' => 'ok'], 200);
         }
+    }
+
+    /**
+     * ✅ FASE 3: NOVO - Validar assinatura HMAC do webhook
+     * 
+     * Formato esperado: {request-id}:{data-id}:{webhook_secret}
+     * Algoritmo: SHA256
+     * Comparação: hash_equals() (timing-safe)
+     */
+    private function validateWebhookSignature(Request $request): bool
+    {
+        // 1. Ler headers obrigatórios
+        $signature = $request->header('x-signature');
+        $requestId = $request->header('x-request-id');
+        
+        if (!$signature || !$requestId) {
+            Log::warning('Webhook rejeitado: headers de segurança faltando', [
+                'has-signature' => !empty($signature),
+                'has-request-id' => !empty($requestId),
+            ]);
+            return false;
+        }
+
+        // 2. Ler data.id
+        $dataId = $request->input('data.id');
+        if (!$dataId) {
+            Log::warning('Webhook rejeitado: data.id faltando');
+            return false;
+        }
+
+        // 3. Obter webhook secret das settings
+        $secret = \App\Models\Setting::get('mercado_pago_webhook_secret');
+        if (!$secret) {
+            Log::error('Webhook rejection: webhook_secret not configured in settings');
+            return false;
+        }
+
+        // 4. Calcular HMAC esperado
+        // Formato: {request-id}:{data-id}:{webhook-secret}
+        $toHash = "{$requestId}:{$dataId}:{$secret}";
+        $expectedSignature = hash('sha256', $toHash);
+
+        // 5. Validar usando hash_equals() (timing-safe)
+        $isValid = hash_equals($expectedSignature, $signature);
+
+        if (!$isValid) {
+            Log::warning('Webhook rejeitado: assinatura HMAC inválida', [
+                'expected' => substr($expectedSignature, 0, 16) . '...',
+                'received' => substr($signature, 0, 16) . '...',
+                'request-id' => $requestId,
+                'data-id' => $dataId,
+            ]);
+        }
+
+        return $isValid;
     }
 
     /**
