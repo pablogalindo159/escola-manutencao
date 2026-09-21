@@ -8,7 +8,7 @@ use App\Models\User;
 use App\Services\MercadoPagoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Log as LogFacade;
 
 class PaymentController
 {
@@ -81,7 +81,7 @@ class PaymentController
 
             // Validar resposta
             if (empty($orderResponse['id'])) {
-                Log::error('Orders API error', [
+                LogFacade::error('Orders API error', [
                     'course_id' => $course->id,
                     'user_id' => $user->id,
                     'response' => $orderResponse,
@@ -97,7 +97,7 @@ class PaymentController
             $payment = $orderResponse['payments'][0] ?? null;
 
             if (!$payment || empty($payment['id'])) {
-                Log::error('Orders API: payment not found', [
+                LogFacade::error('Orders API: payment not found', [
                     'order_id' => $orderId,
                     'response' => $orderResponse,
                 ]);
@@ -113,7 +113,7 @@ class PaymentController
             $qrData = MercadoPagoService::extractQrCodeFromOrder($orderResponse);
 
             if (!$qrData || !$qrData['qr_code']) {
-                Log::error('Orders API: QR Code not found', [
+                LogFacade::error('Orders API: QR Code not found', [
                     'order_id' => $orderId,
                     'payment_id' => $paymentId,
                     'payment_response' => $payment,
@@ -138,7 +138,7 @@ class PaymentController
                 ],
             ]);
 
-            Log::info('Payment criado via Orders API', [
+            LogFacade::info('Payment criado via Orders API', [
                 'payment_id' => $paymentRecord->id,
                 'mp_order_id' => $orderId,
                 'mp_payment_id' => $paymentId,
@@ -153,7 +153,7 @@ class PaymentController
             ], 200);
 
         } catch (\Exception $e) {
-            Log::error('PaymentController::gerarPix exception', [
+            LogFacade::error('PaymentController::gerarPix exception', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -217,7 +217,7 @@ class PaymentController
                     'paid_at' => now(),
                 ]);
 
-                Log::info('Payment aprovado via polling', [
+                LogFacade::info('Payment aprovado via polling', [
                     'payment_id' => $payment->id,
                     'mp_payment_id' => $mpPaymentId,
                 ]);
@@ -234,7 +234,7 @@ class PaymentController
             ], 200);
 
         } catch (\Exception $e) {
-            Log::error('PaymentController::statusPix exception', [
+            LogFacade::error('PaymentController::statusPix exception', [
                 'message' => $e->getMessage(),
             ]);
 
