@@ -21,7 +21,8 @@ class MercadoPagoService
     }
 
     /**
-     * Criar preferência de checkout (Checkout Pro - mantido para compatibilidade)
+     * Criar preferência de checkout (Checkout Pro - mantido para compatibilidade com Preferences API)
+     * ✅ FASE 2: Validar status HTTP real
      */
     public function createPreference(array $data): array
     {
@@ -55,6 +56,17 @@ class MercadoPagoService
 
         $response = Http::withToken($this->accessToken())
             ->post(self::BASE_URL . '/checkout/preferences', $payload);
+
+        // ✅ FASE 2: Validar status HTTP real
+        if ($response->failed()) {
+            \Illuminate\Support\Facades\Log::error('Mercado Pago Preferences API error', [
+                'endpoint' => '/checkout/preferences',
+                'status' => $response->status(),
+                'body' => $response->json(),
+            ]);
+            
+            throw new \Exception("Mercado Pago API error: {$response->status()}");
+        }
 
         return $response->json();
     }
@@ -114,6 +126,18 @@ class MercadoPagoService
                 'X-Idempotency-Key' => (string) \Illuminate\Support\Str::uuid(),  // ✅ NOVO: Evita duplicação
             ])
             ->post(self::BASE_URL . '/v1/orders', $payload);
+
+        // ✅ FASE 2: Validar status HTTP real
+        if ($response->failed()) {
+            \Illuminate\Support\Facades\Log::error('Mercado Pago Orders API error', [
+                'endpoint' => '/v1/orders',
+                'status' => $response->status(),
+                'body' => $response->json(),
+            ]);
+            
+            // Lançar exceção com status real (será capturada pelo controller)
+            throw new \Exception("Mercado Pago API error: {$response->status()}");
+        }
 
         return $response->json();
     }

@@ -25,24 +25,49 @@ class CheckPaymentStatus implements ShouldQueue
 
     public function handle(MercadoPagoService $mercadoPago): void
     {
-        $paymentId = $this->payment->mercado_pago_payment_id;
-
-        if (!$paymentId) {
-            LoggingService::paymentFailed($this->payment, 'No Mercado Pago payment ID');
-            $this->fail(new \Exception('No Mercado Pago payment ID'));
-            return;
-        }
-
         try {
-            $response = $mercadoPago->getPaymentStatus($paymentId);
+            // ✅ NOVO: Detectar qual API foi usada baseado no método
+            if ($this->payment->mercado_pago_order_id) {
+                // PIX Transparente (Orders API) - FASE 1 novO
+                $orderId = $this->payment->mercado_pago_order_id;
+                $response = $mercadoPago->getOrderStatus($orderId);
 
-            if (!isset($response['status'])) {
-                LoggingService::paymentFailed($this->payment, 'Invalid response from Mercado Pago', $response);
+                if (!isset($response['transactions']['payments'][0])) {
+                    LoggingService::paymentFailed($this->payment, 'Invalid Order response from Mercado Pago', $response);
+                    $this->release(5);
+                    return;
+                }
+
+                // ✅ Ler status do local correto (Orders API)
+                $mpStatus = $response['transactions']['payments'][0]['status'] ?? null;
+                
+            } else {
+                // Checkout Pro (Preferences/Payments API) - fallback compatibilidade
+                $paymentId = $this->payment->mercado_pago_payment_id;
+
+                if (!$paymentId) {
+                    LoggingService::paymentFailed($this->payment, 'No Mercado Pago payment ID or Order ID');
+                    $this->fail(new \Exception('No Mercado Pago payment ID'));
+                    return;
+                }
+
+                $response = $mercadoPago->getPaymentStatus($paymentId);
+
+                if (!isset($response['status'])) {
+                    LoggingService::paymentFailed($this->payment, 'Invalid response from Mercado Pago', $response);
+                    $this->release(5);
+                    return;
+                }
+
+                // ✅ Ler status do local correto (Payments API)
+                $mpStatus = $response['status'];
+            }
+
+            if (!$mpStatus) {
+                LoggingService::paymentFailed($this->payment, 'Status não encontrado na resposta da API', $response);
                 $this->release(5);
                 return;
             }
-
-            $mpStatus = $response['status'];
 
             if ($mpStatus === 'approved') {
                 $this->payment->update([
@@ -84,8 +109,12 @@ class CheckPaymentStatus implements ShouldQueue
             $this->release(5);
 
         } catch (\Exception $e) {
+            $endpoint = $this->payment->mercado_pago_order_id 
+                ? "/v1/orders/{$this->payment->mercado_pago_order_id}"
+                : "/v1/payments/{$this->payment->mercado_pago_payment_id}";
+                
             LoggingService::apiCallError(
-                '/v1/payments/{$paymentId}',
+                $endpoint,
                 $e->getMessage()
             );
             $this->release(5);
