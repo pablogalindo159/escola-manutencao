@@ -56,6 +56,72 @@ class PaymentController
     }
 
     /**
+     * POST /minha-area/cursos/{course}/criar-preference
+     */
+    public function criarPreference(Request $request, Course $course)
+    {
+        try {
+            $user = Auth::user();
+
+            $existingPayment = Payment::where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->first();
+
+            if ($existingPayment && $existingPayment->status === 'approved') {
+                return response()->json([
+                    'error' => 'Você já comprou este curso',
+                ], 400);
+            }
+
+            if (empty($this->mercadoPago->accessToken())) {
+                throw new MercadoPagoException(MercadoPagoException::TYPE_INVALID_TOKEN);
+            }
+
+            LoggingService::apiCallStarted('/v1/checkout/preferences', 'POST');
+            
+            $startTime = microtime(true);
+            $preference = $this->mercadoPago->createPreference(
+                courseId: $course->id,
+                courseTitle: $course->title,
+                courseDescription: $course->description,
+                amount: (float) $course->price,
+                payerName: $user->name,
+                payerEmail: $user->email
+            );
+            
+            $durationMs = (int) ((microtime(true) - $startTime) * 1000);
+            LoggingService::apiCallCompleted('/v1/checkout/preferences', 200, $durationMs);
+
+            if (empty($preference['init_point'])) {
+                throw new MercadoPagoException(
+                    MercadoPagoException::TYPE_INVALID_RESPONSE,
+                    $preference
+                );
+            }
+
+            return response()->json([
+                'checkout_pro_url' => $preference['init_point'],
+            ], 200);
+
+        } catch (MercadoPagoException $e) {
+            LoggingService::paymentFailed(null, $e->getMessage(), ['type' => $e->type]);
+
+            return response()->json(
+                $e->toJson(),
+                $e->getHttpStatusCode()
+            );
+
+        } catch (\Exception $e) {
+            LogFacade::error('Unexpected error in criarPreference', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'error' => 'internal_error',
+                'message' => 'Erro interno do servidor',
+            ], 500);
+        }
+    }
+
+    /**
      * POST /minha-area/cursos/{course}/gerar-pix
      */
     public function gerarPix(Request $request, Course $course)
