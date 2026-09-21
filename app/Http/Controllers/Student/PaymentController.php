@@ -36,7 +36,7 @@ class PaymentController
             ->exists();
 
         if ($hasAccess) {
-            return redirect()->route('student.course.show', $course->id)
+            return redirect()->route('student.courses.show', $course->id)
                 ->with('success', 'Você já tem acesso a este curso!');
         }
 
@@ -80,14 +80,14 @@ class PaymentController
             LoggingService::apiCallStarted('/v1/checkout/preferences', 'POST');
             
             $startTime = microtime(true);
-            $preference = $this->mercadoPago->createPreference(
-                courseId: $course->id,
-                courseTitle: $course->title,
-                courseDescription: $course->description,
-                amount: (float) $course->price,
-                payerName: $user->name,
-                payerEmail: $user->email
-            );
+            $preference = $this->mercadoPago->createPreference([
+                'course_id' => $course->id,
+                'title' => $course->title,
+                'description' => $course->description,
+                'amount' => (float) $course->price,
+                'payer_name' => $user->name,
+                'payer_email' => $user->email,
+            ]);
             
             $durationMs = (int) ((microtime(true) - $startTime) * 1000);
             LoggingService::apiCallCompleted('/v1/checkout/preferences', 200, $durationMs);
