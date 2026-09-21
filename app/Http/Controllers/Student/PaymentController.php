@@ -42,16 +42,17 @@ class PaymentController
 
         $paymentMethod = $this->getPaymentMethod();
 
-        $view = $paymentMethod === 'pix_transparent'
-            ? 'student.pix-transparente'
-            : 'student.checkout-pro';
-
-        if (!view()->exists($view)) {
-            LogFacade::warning('View não existe', ['view' => $view]);
-            $view = 'student.pix-transparente';
+        // Seleção explícita do método de pagamento
+        if ($paymentMethod === 'pix_transparente') {
+            return view('student.pix-transparente', compact('course'));
         }
 
-        return view($view, compact('course'));
+        if ($paymentMethod === 'checkout_pro') {
+            return view('student.checkout-pro', compact('course'));
+        }
+
+        // Se nenhum método for válido, retornar erro
+        abort(500, 'Método de pagamento inválido.');
     }
 
     /**
@@ -126,7 +127,7 @@ class PaymentController
                 'mercado_pago_order_id' => $orderId,
                 'mercado_pago_payment_id' => $paymentId,
                 'status' => 'pending',
-                'method' => 'pix_transparent',
+                'method' => 'pix_transparente',
                 'metadata' => [
                     'order_response' => $orderResponse,
                 ],

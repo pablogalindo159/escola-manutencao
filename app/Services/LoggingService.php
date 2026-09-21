@@ -33,17 +33,22 @@ class LoggingService
         ]);
     }
 
-    public static function paymentFailed(Payment $payment, string $reason, ?array $mpResponse = null): void
+    public static function paymentFailed(?Payment $payment, string $reason, ?array $mpResponse = null): void
     {
-        Log::channel('payments')->error('Payment failed', [
-            'payment_id' => $payment->id,
-            'user_id' => $payment->user_id,
-            'course_id' => $payment->course_id,
-            'mp_payment_id' => $payment->mercado_pago_payment_id,
+        $logData = [
             'reason' => $reason,
             'mp_response' => $mpResponse,
             'timestamp' => now()->toIso8601String(),
-        ]);
+        ];
+
+        if ($payment) {
+            $logData['payment_id'] = $payment->id;
+            $logData['user_id'] = $payment->user_id;
+            $logData['course_id'] = $payment->course_id;
+            $logData['mp_payment_id'] = $payment->mercado_pago_payment_id;
+        }
+
+        Log::channel('payments')->error('Payment failed', $logData);
     }
 
     public static function apiCallStarted(string $endpoint, string $method = 'POST'): void

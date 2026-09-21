@@ -14,8 +14,8 @@ trait PaymentMethodsTrait
     {
         return Cache::remember('payment_method', 3600, function () {
             return Setting::query()
-                ->where('key', 'payment_method')
-                ->value('value') ?? 'pix_transparent';
+                ->where('key', 'mercado_pago_payment_method')
+                ->value('value') ?? 'pix_transparente';
         });
     }
 
@@ -24,7 +24,7 @@ trait PaymentMethodsTrait
      */
     public function isPixTransparent(): bool
     {
-        return $this->getPaymentMethod() === 'pix_transparent';
+        return $this->getPaymentMethod() === 'pix_transparente';
     }
 
     /**
@@ -32,7 +32,7 @@ trait PaymentMethodsTrait
      */
     public function isCheckoutPro(): bool
     {
-        return !$this->isPixTransparent();
+        return $this->getPaymentMethod() === 'checkout_pro';
     }
 
     /**

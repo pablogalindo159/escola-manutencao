@@ -76,7 +76,7 @@
         <div id="error-container" class="bg-red-50 border border-red-200 rounded p-4 text-center hidden">
             <p class="text-red-700 text-sm" id="error-message"></p>
             <button 
-                onclick="location.reload()" 
+                onclick="window.location.href = '{{ route(\"student.courses.checkout\", $course) }}'" 
                 class="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition text-sm w-full"
             >
                 Tentar Novamente
@@ -105,9 +105,12 @@ const TIMEOUT_MINUTES = 10;
 const TIMEOUT_MS = TIMEOUT_MINUTES * 60 * 1000;
 
 document.addEventListener('DOMContentLoaded', async function() {
-    await gerarPix();
-    iniciarPolling();
-    iniciarTimer();
+    // Só iniciar polling e timer se PIX foi gerado com sucesso
+    const pixGerado = await gerarPix();
+    if (pixGerado) {
+        iniciarPolling();
+        iniciarTimer();
+    }
 });
 
 async function gerarPix() {
@@ -120,18 +123,35 @@ async function gerarPix() {
         
         const response = await fetch(`/minha-area/cursos/${course}/gerar-pix`, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
+                'Accept': 'application/json',
                 'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRF-TOKEN': csrfToken,
             },
         });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Erro ao gerar PIX');
+        // CORREÇÃO 6: Usar response.text() primeiro para evitar erro com HTML
+        const responseText = await response.text();
+        let data = {};
+        
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            data = {
+                error: `Servidor retornou HTTP ${response.status}`
+            };
         }
 
-        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(
+                data.error ||
+                data.message ||
+                `Erro HTTP ${response.status}`
+            );
+        }
+
         paymentId = data.payment_id;
 
         // Exibir QR Code
@@ -155,12 +175,16 @@ async function gerarPix() {
 
         // Exibir código PIX (copia e cola)
         document.getElementById('pix-code').value = data.qr_code || 'Código indisponível';
+        
+        return true; // PIX gerado com sucesso
 
     } catch (error) {
         console.error('Erro:', error);
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('error-container').classList.remove('hidden');
         document.getElementById('error-message').textContent = error.message;
+        
+        return false; // Falha ao gerar PIX
     }
 }
 
@@ -204,7 +228,8 @@ function iniciarPolling() {
             const response = await fetch(`/minha-area/cursos/${course}/status-pix/${paymentId}`);
             const data = await response.json();
 
-            if (data.approved) {
+            // CORREÇÃO 8: Verificar data.status === 'approved' (não data.approved)
+            if (data.status === 'approved') {
                 clearInterval(pollingInterval);
                 clearInterval(timerInterval);
 
@@ -212,7 +237,7 @@ function iniciarPolling() {
                 document.getElementById('status-success').classList.remove('hidden');
 
                 setTimeout(() => {
-                    window.location.href = '{{ route("student.dashboard") }}';
+                    window.location.href = '{{ route("student.courses.show", $course) }}';
                 }, 2000);
             }
         } catch (error) {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Traits\PaymentMethodsTrait;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 
@@ -48,7 +49,14 @@ class SettingsController extends Controller
         Setting::set('mercado_pago_public_key', $validated['public_key'], 'string', 'Chave pública Mercado Pago');
         Setting::set('mercado_pago_webhook_secret', $validated['webhook_secret'], 'string', 'Secret para validar webhooks');
         Setting::set('mercado_pago_environment', $validated['environment'], 'string', 'Ambiente (sandbox ou production)');
+        Setting::set('mercado_pago_access_token', $validated['access_token'], 'string', 'Token de acesso Mercado Pago');
+        Setting::set('mercado_pago_public_key', $validated['public_key'], 'string', 'Chave pública Mercado Pago');
+        Setting::set('mercado_pago_webhook_secret', $validated['webhook_secret'], 'string', 'Secret para validar webhooks');
+        Setting::set('mercado_pago_environment', $validated['environment'], 'string', 'Ambiente (sandbox ou production)');
         Setting::set('mercado_pago_payment_method', $validated['payment_method'], 'string', 'Método de pagamento (pix_transparente ou checkout_pro)');
+
+        // CORREÇÃO 2: Invalidar cache do método de pagamento
+        PaymentMethodsTrait::invalidatePaymentMethodCache();
 
         return redirect()->route('admin.settings.mercado-pago')
             ->with('success', '✅ Configurações Mercado Pago atualizadas com sucesso!');
