@@ -29,7 +29,7 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 
 // Webhook do Mercado Pago (chamado pelo servidor deles, nunca pelo app/site -
 // sem autenticação de usuário, e a rota 'api' já não tem CSRF por padrão)
-Route::post('/webhooks/mercadopago', [PaymentWebhookController::class, 'handle'])->name('webhooks.mercadopago');
+Route::post('/webhooks/mercadopago', [PaymentWebhookController::class, 'mercadoPagoWebhook'])->name('webhooks.mercadopago');
 
 // Rotas de cursos públicas
 Route::get('/courses', [CourseController::class, 'index']);
