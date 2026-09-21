@@ -2,251 +2,182 @@
 
 namespace App\Services;
 
-use App\Models\Course;
-use App\Models\User;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
-/**
- * Fala diretamente com a API REST do Mercado Pago (Checkout Pro).
- * Não usa o SDK oficial (mercadopago/dx-php) de propósito - evita
- * depender de composer install de um pacote novo pra fazer o deploy
- * funcionar; é só um POST/GET autenticado com Bearer token, igual já
- * fazemos com a oEmbed do YouTube neste projeto.
- *
- * Documentação: https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/landing
- */
 class MercadoPagoService
 {
     private const BASE_URL = 'https://api.mercadopago.com';
 
-    private function accessToken(): string
+    /**
+     * Obter Access Token das configurações
+     */
+    public function accessToken(): string
     {
-        // Tenta primeiro o banco de dados (painel admin), depois o .env
-        $token = \App\Models\Setting::get('mercado_pago_access_token');
-        
-        if (!$token) {
-            $token = config('services.mercadopago.access_token');
-        }
-
-        if (!$token) {
-            throw new \RuntimeException(
-                '❌ MERCADO_PAGO_ACCESS_TOKEN não configurado. Configure no Painel Admin > Configurações > Mercado Pago'
-            );
-        }
-
-        return $token;
+        return config('services.mercado_pago.access_token', '');
     }
 
     /**
-     * Obter a Public Key do Mercado Pago
+     * Criar preferência de checkout (Checkout Pro - mantido para compatibilidade)
      */
-    private function publicKey(): string
+    public function createPreference(array $data): array
     {
-        // Tenta primeiro o banco de dados, depois o .env
-        $key = \App\Models\Setting::get('mercado_pago_public_key');
-        
-        if (!$key) {
-            $key = config('services.mercadopago.public_key');
-        }
-
-        if (!$key) {
-            throw new \RuntimeException(
-                '❌ MERCADO_PAGO_PUBLIC_KEY não configurada. Configure no Painel Admin > Configurações > Mercado Pago'
-            );
-        }
-
-        return $key;
-    }
-
-    /**
-     * Cria uma "preference" (sessão de checkout) pro curso, e devolve o
-     * array de resposta do Mercado Pago (incluindo 'id' e 'init_point',
-     * a URL da página de pagamento hospedada por eles).
-     */
-    public function createPreference(Course $course, User $user): array
-    {
-        $externalReference = "course_{$course->id}_user_{$user->id}";
-
         $payload = [
-            'items' => [[
-                'title' => $course->title,
-                'description' => \Illuminate\Support\Str::limit($course->description ?? '', 200),
-                'quantity' => 1,
-                'currency_id' => 'BRL',
-                'unit_price' => (float) $course->price,
-            ]],
+            'items' => [
+                [
+                    'id' => $data['course_id'] ?? 'course_' . time(),
+                    'title' => $data['title'] ?? 'Curso',
+                    'description' => $data['description'] ?? '',
+                    'picture_url' => $data['picture_url'] ?? null,
+                    'category_id' => 'courses',
+                    'quantity' => 1,
+                    'currency_id' => 'BRL',
+                    'unit_price' => (float) $data['amount'],
+                ]
+            ],
             'payer' => [
-                'name' => $user->name,
-                'email' => $user->email,
+                'name' => $data['payer_name'] ?? 'Cliente',
+                'email' => $data['payer_email'] ?? 'noemail@example.com',
             ],
             'back_urls' => [
-                'success' => route('student.checkout.return', ['status' => 'success']),
-                'pending' => route('student.checkout.return', ['status' => 'pending']),
-                'failure' => route('student.checkout.return', ['status' => 'failure']),
+                'success' => $data['success_url'] ?? route('student.checkout.return'),
+                'failure' => $data['failure_url'] ?? route('student.checkout.return'),
+                'pending' => $data['pending_url'] ?? route('student.checkout.return'),
             ],
             'auto_return' => 'approved',
+            'external_reference' => $data['external_reference'] ?? 'ref_' . time(),
             'notification_url' => route('webhooks.mercadopago'),
-            'external_reference' => $externalReference,
-            'statement_descriptor' => 'ESCOLA MANUTENCAO',
+            'binary_mode' => true,
         ];
 
         $response = Http::withToken($this->accessToken())
-            ->timeout(15)
             ->post(self::BASE_URL . '/checkout/preferences', $payload);
 
-        if (!$response->successful()) {
-            Log::error('Mercado Pago: falha ao criar preferência', [
-                'course_id' => $course->id,
-                'user_id' => $user->id,
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
+        return $response->json();
+    }
 
-            throw new \RuntimeException('Não foi possível iniciar o pagamento. Tente novamente em instantes.');
-        }
+    /**
+     * ✨ NOVO: Criar Order com PIX Transparente (Orders API - RECOMENDADA)
+     * 
+     * Endpoint: POST /v1/orders
+     * Retorna QR Code no response.payments[0].transaction_data
+     */
+    public function createOrderPix(
+        int $courseId,
+        string $courseTitle,
+        ?string $courseDescription,
+        float $amount,
+        string $payerName,
+        string $payerEmail
+    ): array {
+        $externalReference = "course_{$courseId}_" . time();
+
+        $payload = [
+            // Informações da ordem
+            'total_amount' => (float) $amount,
+            'currency' => 'BRL',
+            'description' => 'Compra de curso na Escola da Manutenção',
+
+            // Itens da ordem
+            'items' => [
+                [
+                    'sku_number' => (string) $courseId,
+                    'category' => 'courses',
+                    'title' => $courseTitle,
+                    'description' => $courseDescription
+                        ? substr($courseDescription, 0, 200)
+                        : 'Curso profissional de manutenção',
+                    'quantity' => 1,
+                    'unit_price' => (float) $amount,
+                ]
+            ],
+
+            // Informações do pagador
+            'payer' => [
+                'name' => $payerName,
+                'email' => $payerEmail,
+            ],
+
+            // Configuração de pagamento (PIX)
+            'payments' => [
+                [
+                    'type' => 'wallet_purchase',
+                    'additional_info' => [
+                        'external_reference' => $externalReference,
+                    ],
+                ]
+            ],
+
+            // URLs de callback
+            'notification_url' => route('webhooks.mercadopago'),
+            'back_urls' => [
+                'success' => route('student.checkout.return', ['status' => 'approved']),
+                'failure' => route('student.checkout.return', ['status' => 'failure']),
+            ],
+        ];
+
+        $response = Http::withToken($this->accessToken())
+            ->post(self::BASE_URL . '/v1/orders', $payload);
 
         return $response->json();
     }
 
     /**
-     * Busca os dados completos de um pagamento pelo ID (usado no
-     * webhook - nunca confiamos só no payload que o Mercado Pago manda
-     * na notificação, sempre confirmamos direto na API deles antes de
-     * liberar acesso ao curso).
+     * ✨ NOVO: Obter status de uma Order pelo ID
      */
-    public function getPayment(string $paymentId): array
+    public function getOrderStatus(string $orderId): array
     {
         $response = Http::withToken($this->accessToken())
-            ->timeout(15)
-            ->get(self::BASE_URL . "/v1/payments/{$paymentId}");
-
-        if (!$response->successful()) {
-            Log::error('Mercado Pago: falha ao consultar pagamento', [
-                'payment_id' => $paymentId,
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-
-            throw new \RuntimeException("Não foi possível consultar o pagamento {$paymentId} no Mercado Pago.");
-        }
+            ->get(self::BASE_URL . "/v1/orders/{$orderId}");
 
         return $response->json();
     }
 
     /**
-     * Extrai course_id e user_id do external_reference que a gente
-     * mesmo gerou em createPreference(). Retorna null se o formato não
-     * bater (nunca deveria acontecer com pagamentos criados por nós).
+     * Obter status de um pagamento (mantido para compatibilidade com Payments API)
      */
-    public function parseExternalReference(?string $externalReference): ?array
+    public function getPaymentStatus(string $paymentId): array
     {
-        if (!$externalReference || !preg_match('/^course_(\d+)_user_(\d+)$/', $externalReference, $m)) {
+        $response = Http::withToken($this->accessToken())
+            ->get(self::BASE_URL . "/v1/payments/{$paymentId}");
+
+        return $response->json();
+    }
+
+    /**
+     * Extrair QR Code do response da Order
+     */
+    public static function extractQrCodeFromOrder(array $orderResponse): ?array
+    {
+        // Estrutura esperada: payments[0].transaction_data.qr_code
+        $payment = $orderResponse['payments'][0] ?? null;
+        if (!$payment) {
+            return null;
+        }
+
+        $transactionData = $payment['transaction_data'] ?? null;
+        if (!$transactionData) {
             return null;
         }
 
         return [
-            'course_id' => (int) $m[1],
-            'user_id' => (int) $m[2],
+            'qr_code' => $transactionData['qr_code'] ?? null,
+            'qr_code_base64' => $transactionData['qr_code_base64'] ?? null,
         ];
     }
 
     /**
-     * Mapeia o payment_type_id do Mercado Pago pro enum que usamos na
-     * coluna payments.method.
+     * Extrair QR Code do response do pagamento (Legacy Payments API)
      */
-    public function mapPaymentMethod(?string $paymentTypeId): ?string
+    public static function extractQrCodeFromPayment(array $paymentResponse): ?array
     {
-        return match ($paymentTypeId) {
-            'credit_card' => 'credit_card',
-            'debit_card' => 'debit_card',
-            'bank_transfer', 'pix' => 'pix',
-            'ticket' => 'boleto',
-            'account_money', 'digital_wallet' => 'wallet',
-            default => null,
-        };
-    }
-
-    /**
-     * Cria um pagamento PIX Transparente (sem redirecionamento)
-     * Retorna QR Code, código de cópia e cola, URL do comprovante, etc.
-     */
-    public function createPixPayment(Course $course, User $user): array
-    {
-        $externalReference = "course_{$course->id}_user_{$user->id}";
-
-        $payload = [
-            'transaction_amount' => (float) $course->price,
-            'description' => $course->title,
-            'payment_method_id' => 'pix',
-            'payer' => [
-                'name' => $user->name,
-                'email' => $user->email,
-                'identification' => [
-                    'type' => 'CPF',
-                    'number' => $user->cpf ?? '00000000000', // Campo opcional
-                ],
-            ],
-            'notification_url' => route('webhooks.mercadopago'),
-            'external_reference' => $externalReference,
-        ];
-
-        $response = Http::withToken($this->accessToken())
-            ->timeout(15)
-            ->post(self::BASE_URL . '/v1/payments', $payload);
-
-        if (!$response->successful()) {
-            Log::error('Mercado Pago PIX: falha ao criar pagamento', [
-                'course_id' => $course->id,
-                'user_id' => $user->id,
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-
-            throw new \RuntimeException(
-                'Não foi possível gerar o QR Code PIX. Verifique suas credenciais no Painel Admin.'
-            );
+        $transactionData = $paymentResponse['point_of_interaction']['transaction_data'] ?? null;
+        if (!$transactionData) {
+            return null;
         }
 
-        $data = $response->json();
-
-        // Extrai os dados do PIX
         return [
-            'id' => $data['id'] ?? null,
-            'qr_code' => $data['point_of_interaction']['transaction_data']['qr_code'] ?? null,
-            'qr_code_base64' => $data['point_of_interaction']['transaction_data']['qr_code_base64'] ?? null,
-            'pix_copy_paste' => $data['point_of_interaction']['transaction_data']['copy_and_paste'] ?? null,
-            'ticket_url' => $data['transaction_details']['ticket_url'] ?? null,
-            'status' => $data['status'] ?? null,
-            'date_of_expiration' => $data['date_of_expiration'] ?? null,
-        ];
-    }
-
-    /**
-     * Consultar status de um pagamento PIX
-     */
-    public function getPixStatus(string $paymentId): array
-    {
-        $response = Http::withToken($this->accessToken())
-            ->timeout(15)
-            ->get(self::BASE_URL . "/v1/payments/{$paymentId}");
-
-        if (!$response->successful()) {
-            Log::error('Mercado Pago: falha ao consultar status PIX', [
-                'payment_id' => $paymentId,
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-
-            throw new \RuntimeException("Não foi possível consultar o status do pagamento.");
-        }
-
-        $data = $response->json();
-
-        return [
-            'id' => $data['id'] ?? null,
-            'status' => $data['status'] ?? null,
-            'status_detail' => $data['status_detail'] ?? null,
+            'qr_code' => $transactionData['qr_code'] ?? null,
+            'qr_code_base64' => $transactionData['qr_code_base64'] ?? null,
         ];
     }
 }
