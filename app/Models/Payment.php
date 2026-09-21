@@ -16,6 +16,8 @@ class Payment extends Model
         'amount',
         'mercado_pago_payment_id',
         'mercado_pago_preference_id',
+        'mercado_pago_order_id',         // ✅ NOVO: para PIX Transparente
+        'external_reference',             // ✅ NOVO: para webhook tracking
         'status',
         'method',
         'paid_at',

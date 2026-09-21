@@ -123,6 +123,10 @@ class PaymentController
 
     /**
      * POST /minha-area/cursos/{course}/gerar-pix
+     * 
+     * ✅ CORRIGIDO: Acessa transactions.payments[0] (Orders API)
+     * ✅ NOVO: Persiste mercado_pago_order_id
+     * ✅ NOVO: Usa extractQrCodeFromOrder() com local correto
      */
     public function gerarPix(Request $request, Course $course)
     {
@@ -158,25 +162,22 @@ class PaymentController
             $durationMs = (int) ((microtime(true) - $startTime) * 1000);
             LoggingService::apiCallCompleted('/v1/orders', 200, $durationMs);
 
-            if (empty($orderResponse['id']) || empty($orderResponse['payments'])) {
+            // ✅ CORRIGIDO: Acessar transactions.payments (estrutura Orders API)
+            if (empty($orderResponse['id']) || 
+                empty($orderResponse['transactions']['payments'][0]['id'])) {
                 throw new MercadoPagoException(
                     MercadoPagoException::TYPE_INVALID_RESPONSE,
                     $orderResponse
                 );
             }
 
+            // ✅ Salvar Order ID (para PIX Transparente)
             $orderId = $orderResponse['id'];
-            $payment = $orderResponse['payments'][0] ?? null;
-
-            if (!$payment || empty($payment['id'])) {
-                throw new MercadoPagoException(
-                    MercadoPagoException::TYPE_INVALID_RESPONSE,
-                    $orderResponse
-                );
-            }
-
+            $payment = $orderResponse['transactions']['payments'][0];
             $paymentId = $payment['id'];
+            $externalReference = $orderResponse['external_reference'] ?? null;
 
+            // ✅ Extrair QR Code do local correto
             $qrData = MercadoPagoService::extractQrCodeFromOrder($orderResponse);
 
             if (!$qrData || !$qrData['qr_code']) {
@@ -190,8 +191,9 @@ class PaymentController
                 'user_id' => $user->id,
                 'course_id' => $course->id,
                 'amount' => $course->price,
-                'mercado_pago_order_id' => $orderId,
+                'mercado_pago_order_id' => $orderId,           // ✅ NOVO: Order ID (PIX)
                 'mercado_pago_payment_id' => $paymentId,
+                'external_reference' => $externalReference,    // ✅ NOVO: para webhook tracking
                 'status' => 'pending',
                 'method' => 'pix_transparente',
                 'metadata' => [

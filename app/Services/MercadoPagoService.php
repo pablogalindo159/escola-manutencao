@@ -62,8 +62,15 @@ class MercadoPagoService
     /**
      * ✨ NOVO: Criar Order com PIX Transparente (Orders API - RECOMENDADA)
      * 
+     * Estrutura CORRIGIDA conforme documentação atual do Mercado Pago:
+     * - type: 'online' (obrigatório)
+     * - total_amount: número formatado com 2 decimais
+     * - transactions.payments[0].payment_method.id: 'pix'
+     * - transactions.payments[0].payment_method.type: 'bank_transfer'
+     * - X-Idempotency-Key: UUID único por tentativa
+     * 
      * Endpoint: POST /v1/orders
-     * Retorna QR Code no response.payments[0].transaction_data
+     * Retorna QR Code em: response['transactions']['payments'][0]['payment_method']['qr_code']
      */
     public function createOrderPix(
         int $courseId,
@@ -73,56 +80,75 @@ class MercadoPagoService
         string $payerName,
         string $payerEmail
     ): array {
-        $externalReference = "course_{$courseId}_" . time();
+        $externalReference = "course_{$courseId}_" . \Illuminate\Support\Str::uuid();
 
         $payload = [
-            // Informações da ordem
-            'total_amount' => (float) $amount,
-            'currency' => 'BRL',
-            'description' => 'Compra de curso na Escola da Manutenção',
-
-            // Itens da ordem
-            'items' => [
-                [
-                    'sku_number' => (string) $courseId,
-                    'category' => 'courses',
-                    'title' => $courseTitle,
-                    'description' => $courseDescription
-                        ? substr($courseDescription, 0, 200)
-                        : 'Curso profissional de manutenção',
-                    'quantity' => 1,
-                    'unit_price' => (float) $amount,
-                ]
-            ],
-
-            // Informações do pagador
-            'payer' => [
-                'name' => $payerName,
-                'email' => $payerEmail,
-            ],
-
-            // Configuração de pagamento (PIX)
-            'payments' => [
-                [
-                    'type' => 'wallet_purchase',
-                    'additional_info' => [
-                        'external_reference' => $externalReference,
+            'type' => 'online',                                              // ✅ OBRIGATÓRIO
+            'total_amount' => number_format($amount, 2, '.', ''),            // ✅ Formato correto
+            'external_reference' => $externalReference,
+            'processing_mode' => 'automatic',                                // ✅ Para processamento automático
+            
+            // ✅ ESTRUTURA CORRIGIDA: transactions.payments (não payments no topo)
+            'transactions' => [
+                'payments' => [
+                    [
+                        'amount' => number_format($amount, 2, '.', ''),
+                        'payment_method' => [
+                            'id' => 'pix',                                   // ✅ Literal 'pix'
+                            'type' => 'bank_transfer',                       // ✅ Para PIX
+                        ],
                     ],
-                ]
+                ],
             ],
-
-            // URLs de callback
-            'notification_url' => route('webhooks.mercadopago'),
-            'back_urls' => [
-                'success' => route('student.checkout.return', ['status' => 'approved']),
-                'failure' => route('student.checkout.return', ['status' => 'failure']),
+            
+            // ✅ Informações do pagador (obrigatório para Orders API)
+            'payer' => [
+                'email' => $payerEmail,
             ],
         ];
 
         $response = Http::withToken($this->accessToken())
+            ->withHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+                'X-Idempotency-Key' => (string) \Illuminate\Support\Str::uuid(),  // ✅ NOVO: Evita duplicação
+            ])
             ->post(self::BASE_URL . '/v1/orders', $payload);
 
         return $response->json();
+    }
+
+    /**
+     * ✅ NOVO: Extrair QR Code da resposta da Order (Orders API)
+     * 
+     * Local correto: response['transactions']['payments'][0]['payment_method']
+     * Contém: 'qr_code' (string) e 'qr_code_base64' (string para imagem)
+     */
+    public static function extractQrCodeFromOrder(array $orderResponse): ?array
+    {
+        // Validar estrutura
+        $payment = $orderResponse['transactions']['payments'][0] ?? null;
+        if (!$payment) {
+            return null;
+        }
+
+        $paymentMethod = $payment['payment_method'] ?? null;
+        if (!$paymentMethod) {
+            return null;
+        }
+
+        // Extrair QR Code e sua versão em base64
+        $qrCode = $paymentMethod['qr_code'] ?? null;
+        $qrCodeBase64 = $paymentMethod['qr_code_base64'] ?? null;
+
+        if (!$qrCode || !$qrCodeBase64) {
+            return null;
+        }
+
+        return [
+            'qr_code' => $qrCode,
+            'qr_code_base64' => $qrCodeBase64,
+        ];
     }
 
     /**
