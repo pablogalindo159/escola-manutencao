@@ -38,7 +38,24 @@ class PaymentController
                 ->with('success', 'Você já tem acesso a este curso!');
         }
 
-        // Sempre usar PIX Transparente (padrão)
+        // Determinar método: PIX ou Checkout Pro
+        $paymentMethod = $this->getPaymentMethod();
+
+        if ($paymentMethod === 'pix_transparent') {
+            return view('student.pix-transparente', compact('course'));
+        }
+
+        // Checkout Pro - tentar carregar view, se não existir redireciona
+        if (view()->exists('student.checkout-pro')) {
+            return view('student.checkout-pro', compact('course'));
+        }
+
+        // Fallback: se view não existir, usar PIX Transparente
+        LogFacade::warning('View checkout-pro não existe, usando pix-transparente como fallback', [
+            'course_id' => $course->id,
+            'user_id' => $user->id,
+        ]);
+
         return view('student.pix-transparente', compact('course'));
     }
 
