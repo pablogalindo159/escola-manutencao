@@ -50,11 +50,8 @@ class PaymentWebhookController extends Controller
             return response()->json(['error' => 'Invalid signature'], 401);
         }
 
-        // Para Orders, usar data.id em minúsculas
-        $type = (string) $request->query('type', '');
-        $signatureId = $type === 'order'
-            ? strtolower($dataId)
-            : $dataId;
+        // Usar data.id exatamente como recebido (sem modificações)
+        $signatureId = $dataId;
 
         // Obter secret do Admin ou config
         $secret = \App\Models\Setting::get(
