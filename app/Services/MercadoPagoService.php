@@ -10,10 +10,14 @@ class MercadoPagoService
 
     /**
      * Obter Access Token das configurações
+     * Prioridade: 1º banco de dados (Admin) → 2º .env
      */
     public function accessToken(): string
     {
-        return config('services.mercado_pago.access_token', '');
+        return \App\Models\Setting::get(
+            'mercado_pago_access_token',
+            config('services.mercadopago.access_token', '')
+        );
     }
 
     /**
