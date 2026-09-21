@@ -38,15 +38,8 @@ class PaymentController
                 ->with('success', 'Você já tem acesso a este curso!');
         }
 
-        // Determinar método: PIX ou Checkout Pro
-        $paymentMethod = $this->getPaymentMethod();
-
-        if ($paymentMethod === 'pix_transparent') {
-            return view('student.pix-transparente', compact('course'));
-        }
-
-        // Default: Checkout Pro
-        return view('student.checkout-pro', compact('course'));
+        // Sempre usar PIX Transparente (padrão)
+        return view('student.pix-transparente', compact('course'));
     }
 
     /**
