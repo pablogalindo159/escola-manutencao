@@ -10,123 +10,193 @@ class PaymentWebhookController extends Controller
 {
     public function mercadoPagoWebhook(Request $request)
     {
-        // ============= VALIDAÇÃO HMAC =============
         $xSignature = $request->header('X-Signature');
         $xRequestId = $request->header('X-Request-Id');
+        $dataId = (string) $request->query('data.id', '');
 
-        if (!$xSignature) {
-            Log::warning('Webhook MP: Missing X-Signature header');
-            return response()->json(['error' => 'Missing signature'], 400);
+        if (!$xSignature || !$xRequestId || !$dataId) {
+            Log::warning('Webhook MP: headers/query obrigatórios ausentes');
+            return response()->json(['error' => 'Invalid notification'], 400);
         }
 
-        // Parsear "ts=1234567890,v1=abc123..."
+        // Parsear X-Signature: ts=...,v1=...
         $parts = [];
         foreach (explode(',', $xSignature) as $part) {
-            if (strpos($part, '=') === false) continue;
-            [$key, $value] = explode('=', $part);
-            $parts[trim($key)] = trim($value);
+            $keyValue = explode('=', $part, 2);
+            if (count($keyValue) !== 2) {
+                continue;
+            }
+            $parts[trim($keyValue[0])] = trim($keyValue[1]);
         }
 
         $ts = $parts['ts'] ?? null;
         $v1 = $parts['v1'] ?? null;
 
         if (!$ts || !$v1) {
-            Log::warning('Webhook MP: Invalid X-Signature format');
-            return response()->json(['error' => 'Invalid signature format'], 400);
-        }
-
-        // ============= CALCULAR HMAC-SHA256 =============
-        $rawBody = file_get_contents('php://input');
-        $secret = config('services.mercado_pago.webhook_secret');
-
-        if (!$secret) {
-            Log::error('Webhook MP: Webhook secret not configured');
-            return response()->json(['error' => 'Server error'], 500);
-        }
-
-        $calculated = hash_hmac('sha256', "$ts.$rawBody", $secret);
-
-        // ============= VALIDAR ASSINATURA =============
-        if (!hash_equals($calculated, $v1)) {
-            Log::warning("Webhook MP: Invalid HMAC signature [ts={$ts}]");
+            Log::warning('Webhook MP: x-signature inválido');
             return response()->json(['error' => 'Invalid signature'], 401);
         }
 
-        Log::info("✅ Webhook MP válido [request_id={$xRequestId}]");
+        // Para Orders, usar data.id em minúsculas
+        $type = (string) $request->query('type', '');
+        $signatureId = $type === 'order'
+            ? strtolower($dataId)
+            : $dataId;
 
-        // ============= PROCESSAR PAYLOAD =============
+        // Obter secret do Admin ou config
+        $secret = \App\Models\Setting::get(
+            'mercado_pago_webhook_secret',
+            config('services.mercadopago.webhook_secret', '')
+        );
+
+        if (!$secret) {
+            Log::error('Webhook MP: secret não configurado');
+            return response()->json(['error' => 'Server error'], 500);
+        }
+
+        // Manifest conforme documentação oficial
+        $manifest = "id:{$signatureId};request-id:{$xRequestId};ts:{$ts};";
+        $expected = hash_hmac('sha256', $manifest, $secret);
+
+        if (!hash_equals($expected, $v1)) {
+            Log::warning('Webhook MP: assinatura inválida', [
+                'request_id' => $xRequestId,
+                'type' => $type,
+            ]);
+            return response()->json(['error' => 'Invalid signature'], 401);
+        }
+
         $data = $request->json()->all();
         $action = $data['action'] ?? null;
-        $paymentId = $data['data']['id'] ?? null;
 
-        if (!$paymentId) {
-            Log::warning('Webhook MP: Missing payment ID');
-            return response()->json(['success' => true]);
-        }
+        // ========== ORDERS API ==========
+        if ($type === 'order') {
+            $orderId = $dataId;
+            $order = $this->getMercadoPagoOrderData($orderId);
 
-        Log::info("Webhook MP: action={$action}, paymentId={$paymentId}");
-
-        // ============= BUSCAR PAGAMENTO NO BANCO =============
-        $payment = Payment::where('mercado_pago_payment_id', $paymentId)->first();
-
-        if (!$payment) {
-            Log::warning("Webhook MP: Payment not found [mercado_pago_payment_id={$paymentId}]");
-            return response()->json(['success' => true]);
-        }
-
-        // ============= CONSULTAR STATUS NO MERCADO PAGO =============
-        $mpPaymentData = $this->getMercadoPagoPaymentData($paymentId);
-
-        if (!$mpPaymentData) {
-            Log::error("Webhook MP: Could not fetch payment from Mercado Pago [id={$paymentId}]");
-            return response()->json(['success' => true]);
-        }
-
-        $mpStatus = $mpPaymentData['status'] ?? null;
-        $mpStatusDetail = $mpPaymentData['status_detail'] ?? null;
-
-        Log::info("Webhook MP: Payment status [status={$mpStatus}] [detail={$mpStatusDetail}]");
-
-        // ============= ATUALIZAR PAGAMENTO =============
-        $payment->update([
-            'status' => $mpStatus,
-            'mercado_pago_order_id' => $mpPaymentData['order_id'] ?? null,
-            'external_reference' => $mpPaymentData['external_reference'] ?? null,
-            'qr_code' => $mpPaymentData['qr_code'] ?? null,
-            'qr_code_base64' => $mpPaymentData['qr_code_base64'] ?? null,
-            'metadata' => json_encode([
-                'webhook_action' => $action,
-                'mp_status_detail' => $mpStatusDetail,
-                'webhook_received_at' => now(),
-            ]),
-        ]);
-
-        // ============= PROCESSAR APROVAÇÃO =============
-        if ($mpStatus === 'approved') {
-            Log::info("✅ Pagamento aprovado [payment_id={$payment->id}] [user_id={$payment->user_id}]");
-            
-            if ($payment->course_id && $payment->user_id) {
-                $payment->user->courses()->syncWithoutDetaching([$payment->course_id]);
-                Log::info("✅ Usuário adicionado ao curso [user={$payment->user_id}] [course={$payment->course_id}]");
+            if (!$order) {
+                return response()->json(['success' => true], 200);
             }
-        } elseif ($mpStatus === 'rejected') {
-            Log::warning("❌ Pagamento rejeitado [payment_id={$payment->id}] [detail={$mpStatusDetail}]");
+
+            $mpPayment = $order['transactions']['payments'][0] ?? [];
+            $paymentId = $mpPayment['id'] ?? null;
+            $mpStatus = $mpPayment['status'] ?? $order['status'] ?? null;
+
+            $payment = Payment::where('mercado_pago_order_id', $orderId)->first();
+            if (!$payment && $paymentId) {
+                $payment = Payment::where('mercado_pago_payment_id', $paymentId)->first();
+            }
+
+            if (!$payment) {
+                Log::warning('Webhook MP: Order não encontrada no banco', [
+                    'order_id' => $orderId,
+                ]);
+                return response()->json(['success' => true], 200);
+            }
+
+            $payment->update([
+                'status' => $mpStatus,
+                'mercado_pago_payment_id' => $paymentId ?: $payment->mercado_pago_payment_id,
+                'external_reference' => $order['external_reference'] ?? $payment->external_reference,
+                'metadata' => json_encode([
+                    'webhook_type' => 'order',
+                    'webhook_action' => $action,
+                    'mp_status_detail' => $mpPayment['status_detail'] ?? $order['status_detail'] ?? null,
+                    'webhook_received_at' => now()->toIso8601String(),
+                ]),
+            ]);
+
+            if (in_array($mpStatus, ['approved', 'processed'], true)) {
+                $payment->markAsApproved();
+            }
+
+            return response()->json(['success' => true], 200);
         }
 
-        return response()->json([
-            'success' => true,
-            'payment_id' => $paymentId,
-            'status' => $mpStatus,
-        ], 200);
+        // ========== CHECKOUT PRO / PAYMENTS API ==========
+        if ($type === 'payment') {
+            $paymentId = $data['data']['id'] ?? $dataId;
+            $mpPaymentData = $this->getMercadoPagoPaymentData($paymentId);
+
+            if (!$mpPaymentData) {
+                return response()->json(['success' => true], 200);
+            }
+
+            $payment = Payment::where('mercado_pago_payment_id', $paymentId)->first();
+
+            if (!$payment) {
+                Log::warning('Webhook MP: Payment não encontrado', [
+                    'payment_id' => $paymentId,
+                ]);
+                return response()->json(['success' => true], 200);
+            }
+
+            $status = $mpPaymentData['status'] ?? null;
+
+            $payment->update([
+                'status' => $status,
+                'external_reference' => $mpPaymentData['external_reference'] ?? $payment->external_reference,
+                'metadata' => json_encode([
+                    'webhook_type' => 'payment',
+                    'webhook_action' => $action,
+                    'webhook_received_at' => now()->toIso8601String(),
+                ]),
+            ]);
+
+            if ($status === 'approved') {
+                $payment->markAsApproved();
+            }
+
+            return response()->json(['success' => true], 200);
+        }
+
+        return response()->json(['success' => true], 200);
     }
 
-    private function getMercadoPagoPaymentData($paymentId)
+    private function getMercadoPagoOrderData(string $orderId): ?array
     {
         try {
-            $accessToken = config('services.mercado_pago.access_token');
-            
+            $accessToken = \App\Models\Setting::get(
+                'mercado_pago_access_token',
+                config('services.mercadopago.access_token', '')
+            );
+
             if (!$accessToken) {
-                Log::error('Webhook: Mercado Pago access token not configured');
+                Log::error('Webhook: Access Token não configurado');
+                return null;
+            }
+
+            $response = \Http::withToken($accessToken)
+                ->timeout(10)
+                ->get("https://api.mercadopago.com/v1/orders/{$orderId}");
+
+            if (!$response->successful()) {
+                Log::error('Webhook: erro ao consultar Order', [
+                    'status' => $response->status(),
+                    'order_id' => $orderId,
+                ]);
+                return null;
+            }
+
+            return $response->json();
+        } catch (\Throwable $e) {
+            Log::error('Webhook: exceção ao consultar Order', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    private function getMercadoPagoPaymentData(string $paymentId): ?array
+    {
+        try {
+            $accessToken = \App\Models\Setting::get(
+                'mercado_pago_access_token',
+                config('services.mercadopago.access_token', '')
+            );
+
+            if (!$accessToken) {
+                Log::error('Webhook: Access Token não configurado');
                 return null;
             }
 
@@ -135,13 +205,18 @@ class PaymentWebhookController extends Controller
                 ->get("https://api.mercadopago.com/v1/payments/{$paymentId}");
 
             if (!$response->successful()) {
-                Log::error("Webhook: Failed to fetch payment from MP [status={$response->status()}] [id={$paymentId}]");
+                Log::error('Webhook: erro ao consultar Payment', [
+                    'status' => $response->status(),
+                    'payment_id' => $paymentId,
+                ]);
                 return null;
             }
 
             return $response->json();
-        } catch (\Exception $e) {
-            Log::error("Webhook: Exception fetching payment from MP [{$e->getMessage()}]");
+        } catch (\Throwable $e) {
+            Log::error('Webhook: exceção ao consultar Payment', [
+                'error' => $e->getMessage(),
+            ]);
             return null;
         }
     }
