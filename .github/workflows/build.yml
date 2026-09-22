@@ -1,0 +1,84 @@
+name: Build APK Android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'flutter_app/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compilar APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Gerar estrutura nativa Android (se faltar)
+        working-directory: flutter_app
+        run: flutter create --platforms=android --org com.escoladamanutencao .
+
+      - name: Adicionar permissão INTERNET ao AndroidManifest.xml
+        working-directory: flutter_app
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if grep -q "android.permission.INTERNET" "$MANIFEST"; then
+            echo "✓ Permissão INTERNET já existe"
+          else
+            echo "✗ Adicionando permissão INTERNET..."
+            sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>' "$MANIFEST"
+            echo "✓ Permissão INTERNET adicionada"
+          fi
+          echo "=== AndroidManifest.xml (primeiras 15 linhas) ==="
+          head -15 "$MANIFEST"
+
+      - name: Adicionar <queries> ao AndroidManifest.xml (permite abrir YouTube/links externos)
+        working-directory: flutter_app
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if grep -q "<queries>" "$MANIFEST"; then
+            echo "✓ <queries> já existe"
+          else
+            echo "✗ Adicionando <queries>..."
+            sed -i '/<\/manifest>/i\    <queries>' "$MANIFEST"
+            sed -i '/<\/manifest>/i\        <intent>' "$MANIFEST"
+            sed -i '/<\/manifest>/i\            <action android:name="android.intent.action.VIEW" />' "$MANIFEST"
+            sed -i '/<\/manifest>/i\            <data android:scheme="https" />' "$MANIFEST"
+            sed -i '/<\/manifest>/i\        </intent>' "$MANIFEST"
+            sed -i '/<\/manifest>/i\    </queries>' "$MANIFEST"
+            echo "✓ <queries> adicionado (sem isso, canLaunchUrl sempre retorna falso no Android 11+ e o botão 'Assistir no YouTube' não abre nada)"
+          fi
+          echo "=== AndroidManifest.xml completo ==="
+          cat "$MANIFEST"
+
+      - name: Instalar dependências
+        working-directory: flutter_app
+        run: flutter pub get
+
+      - name: Analisar código (não bloqueia o build)
+        working-directory: flutter_app
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings || true
+
+      - name: Compilar APK (release)
+        working-directory: flutter_app
+        run: flutter build apk --release
+
+      - name: Enviar APK como artefato do build
+        uses: actions/upload-artifact@v4
+        with:
+          name: escola-manutencao-apk
+          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 90
