@@ -139,3 +139,8 @@ class MyApp extends StatelessWidget {
               amount: args['amount'] ?? 99.90,
             );
           },
+        },
+      ),
+    );
+  }
+}
