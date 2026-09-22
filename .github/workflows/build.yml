@@ -45,24 +45,29 @@ jobs:
           echo "=== AndroidManifest.xml (primeiras 15 linhas) ==="
           head -15 "$MANIFEST"
 
-      - name: Adicionar <queries> ao AndroidManifest.xml (permite abrir YouTube/links externos)
+      - name: Adicionar <queries> https ao AndroidManifest.xml (permite abrir Mercado Pago/YouTube/links)
         working-directory: flutter_app
         run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          if grep -q "<queries>" "$MANIFEST"; then
-            echo "✓ <queries> já existe"
-          else
-            echo "✗ Adicionando <queries>..."
-            sed -i '/<\/manifest>/i\    <queries>' "$MANIFEST"
-            sed -i '/<\/manifest>/i\        <intent>' "$MANIFEST"
-            sed -i '/<\/manifest>/i\            <action android:name="android.intent.action.VIEW" />' "$MANIFEST"
-            sed -i '/<\/manifest>/i\            <data android:scheme="https" />' "$MANIFEST"
-            sed -i '/<\/manifest>/i\        </intent>' "$MANIFEST"
-            sed -i '/<\/manifest>/i\    </queries>' "$MANIFEST"
-            echo "✓ <queries> adicionado (sem isso, canLaunchUrl sempre retorna falso no Android 11+ e o botão 'Assistir no YouTube' não abre nada)"
-          fi
+          python3 - << 'EOF'
+          p = "android/app/src/main/AndroidManifest.xml"
+          s = open(p).read()
+          intent = ('        <intent>\n'
+                    '            <action android:name="android.intent.action.VIEW" />\n'
+                    '            <data android:scheme="https" />\n'
+                    '        </intent>\n')
+          if 'android:scheme="https"' in s:
+              print("OK: intent https ja existe")
+          elif "<queries>" in s:
+              s = s.replace("<queries>\n", "<queries>\n" + intent, 1)
+              print("OK: intent https inserido no <queries> existente")
+          else:
+              s = s.replace("</manifest>", "    <queries>\n" + intent + "    </queries>\n</manifest>", 1)
+              print("OK: bloco <queries> criado")
+          open(p, "w").write(s)
+          assert 'android:scheme="https"' in open(p).read(), "falhou ao inserir intent https"
+          EOF
           echo "=== AndroidManifest.xml completo ==="
-          cat "$MANIFEST"
+          cat android/app/src/main/AndroidManifest.xml
 
       - name: Instalar dependências
         working-directory: flutter_app

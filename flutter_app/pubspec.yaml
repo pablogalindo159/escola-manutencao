@@ -2,7 +2,7 @@ name: escola_manutencao
 description: "App de cursos de manutenção - Escola da Manutenção"
 publish_to: 'none'
 
-version: 1.0.24+24
+version: 1.0.25+25
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
