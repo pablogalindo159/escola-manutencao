@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:escola_app/services/api_service.dart';
-import 'package:escola_app/models/course.dart';
+import 'package:escola_manutencao/services/api_service.dart';
+import 'package:escola_manutencao/models/course_model.dart';
 
 class PixTransparenteScreen extends StatefulWidget {
   final Course course;

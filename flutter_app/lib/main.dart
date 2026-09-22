@@ -19,6 +19,7 @@ import 'screens/repairs/repair_photo_screen.dart';
 import 'screens/community/posts_screen.dart';
 import 'screens/community/post_detail_screen.dart';
 import 'screens/community/post_form_screen.dart';
+import 'screens/payment/payment_method_screen.dart';
 import 'screens/profile/profile_screen.dart';
 
 void main() {
@@ -128,6 +129,10 @@ class MyApp extends StatelessWidget {
             return PostDetailScreen(postId: postId);
           },
           '/post-form': (context) {
+          '/checkout-method': (context) {
+            final course = ModalRoute.of(context)!.settings.arguments as Course;
+            return PaymentMethodScreen(course: course);
+          },
             final courseId = ModalRoute.of(context)?.settings.arguments as int?;
             return PostFormScreen(courseId: courseId);
           },
