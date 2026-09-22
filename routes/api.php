@@ -78,12 +78,16 @@ Route::middleware('auth:api')->group(function () {
     Route::prefix('courses')->group(function () {
         Route::post('/{course}/subscribe', [CourseController::class, 'subscribe']);
         Route::post('/{course}/checkout', [PaymentController::class, 'checkout']);
+        Route::post('/{course}/pix', [PaymentController::class, 'pix']);
 
         // ADMIN
         Route::post('/', [CourseController::class, 'store'])->middleware('admin');
         Route::put('/{course}', [CourseController::class, 'update'])->middleware('admin');
         Route::delete('/{course}', [CourseController::class, 'destroy'])->middleware('admin');
     });
+
+    // ==================== PAGAMENTOS ====================
+    Route::get('/payments/{payment}/status', [PaymentController::class, 'status'])->whereNumber('payment');
 
     // ==================== VÍDEOS ====================
     Route::prefix('videos')->group(function () {
