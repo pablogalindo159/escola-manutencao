@@ -53,7 +53,9 @@ class PaymentWebhookController extends Controller
             return response()->json(['error' => 'Invalid signature'], 401);
         }
 
-        $signatureId = $dataId;
+        // Converter Order ID para minúsculas conforme documentação Official da Orders API
+        // https://www.mercadopago.com.br/developers/pt/docs/checkout-api-orders/optional-notifications
+        $signatureId = strtolower($dataId);
         $secret = \App\Models\Setting::get(
             'mercado_pago_webhook_secret',
             config('services.mercadopago.webhook_secret', '')
@@ -64,33 +66,29 @@ class PaymentWebhookController extends Controller
             return response()->json(['error' => 'Server error'], 500);
         }
 
-        $manifest1 = "id:{$signatureId};request-id:{$xRequestId};ts:{$ts}";
-        $expected1 = hash_hmac('sha256', $manifest1, $secret);
-
-        $manifest2 = "id:{$signatureId};request-id:{$xRequestId};ts:{$ts};";
-        $expected2 = hash_hmac('sha256', $manifest2, $secret);
+        // Apenas um formato agora: id:lowercase;request-id:;ts:;
+        $manifest = "id:{$signatureId};request-id:{$xRequestId};ts:{$ts};";
+        $expected = hash_hmac('sha256', $manifest, $secret);
 
         Log::info('Webhook MP: HMAC debug', [
-            'manifest_sem_semicolon' => $manifest1,
-            'hmac_sem_semicolon' => $expected1,
+            'manifest' => $manifest,
+            'hmac_gerado' => $expected,
             'v1_recebido' => $v1,
-            'match_sem_semicolon' => hash_equals($expected1, $v1) ? 'TRUE' : 'FALSE',
-            'manifest_com_semicolon' => $manifest2,
-            'hmac_com_semicolon' => $expected2,
-            'match_com_semicolon' => hash_equals($expected2, $v1) ? 'TRUE' : 'FALSE',
+            'signature_id_lowercase' => $signatureId,
+            'match' => hash_equals($expected, $v1) ? 'TRUE' : 'FALSE',
         ]);
 
-        if (hash_equals($expected1, $v1)) {
-            Log::info('Webhook MP: ✅ assinatura válida (SEM semicolon)');
-        } else if (hash_equals($expected2, $v1)) {
-            Log::info('Webhook MP: ✅ assinatura válida (COM semicolon)');
-        } else {
+        if (!hash_equals($expected, $v1)) {
             Log::warning('Webhook MP: assinatura inválida', [
                 'request_id' => $xRequestId,
                 'type' => $type,
+                'hmac_gerado' => $expected,
+                'v1_recebido' => $v1,
             ]);
             return response()->json(['error' => 'Invalid signature'], 401);
         }
+
+        Log::info('Webhook MP: ✅ assinatura válida');
 
         $data = $request->json()->all();
         $action = $data['action'] ?? null;
