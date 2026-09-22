@@ -104,6 +104,9 @@ class PaymentWebhookController extends Controller
             $mpPayment = $order['transactions']['payments'][0] ?? [];
             $paymentId = $mpPayment['id'] ?? null;
             $mpStatus = $mpPayment['status'] ?? $order['status'] ?? null;
+            
+            // Mapear status do MP para status válidos da aplicação
+            $mpStatus = $this->mapMercadoPagoStatus($mpStatus);
 
             $payment = Payment::where('mercado_pago_order_id', $orderId)->first();
             if (!$payment && $paymentId) {
@@ -237,5 +240,33 @@ class PaymentWebhookController extends Controller
             ]);
             return null;
         }
+    }
+
+    /**
+     * Mapear status do Mercado Pago para status válidos da aplicação
+     * 
+     * Constraint da tabela payments: pending, approved, rejected, cancelled
+     * Status do MP: pending, approved, rejected, cancelled, action_required, processed, in_process
+     */
+    private function mapMercadoPagoStatus(string $mpStatus): string
+    {
+        $statusMap = [
+            'pending' => 'pending',
+            'approved' => 'approved',
+            'rejected' => 'rejected',
+            'cancelled' => 'cancelled',
+            'action_required' => 'pending',      // Aguardando ação do usuário → pending
+            'processed' => 'approved',           // Processado com sucesso → approved
+            'in_process' => 'pending',           // Em processamento → pending
+        ];
+
+        $mappedStatus = $statusMap[$mpStatus] ?? 'pending';
+        
+        Log::info('Webhook MP: mapeamento de status', [
+            'mp_status' => $mpStatus,
+            'mapped_status' => $mappedStatus,
+        ]);
+
+        return $mappedStatus;
     }
 }
