@@ -44,11 +44,14 @@ class PaymentController extends Controller
             ], 500);
         }
 
+        // ✅ CORRIGIDO: Salvar Order ID para Orders API
+        // Se usar Preferences API, terá preference_id; se Orders API, terá order_id
         Payment::create([
             'user_id' => $user->id,
             'course_id' => $course->id,
             'amount' => $course->price,
             'mercado_pago_preference_id' => $preference['id'] ?? null,
+            'mercado_pago_order_id' => $preference['order_id'] ?? null,  // ✅ Adicionar para Orders API
             'status' => 'pending',
         ]);
 
