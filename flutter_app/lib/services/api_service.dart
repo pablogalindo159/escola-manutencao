@@ -301,6 +301,45 @@ class ApiService {
     }
   }
 
+  /// Método de pagamento escolhido no admin: 'pix_transparente' ou 'checkout_pro'.
+  Future<String> getPaymentMethod() async {
+    try {
+      final response = await _dio.get('/payment-method');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return (response.data['data']?['method'] as String?) ?? 'checkout_pro';
+      }
+      return 'checkout_pro';
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Gera PIX dentro do app. Devolve payment_id, qr_code e qr_code_base64.
+  Future<Map<String, dynamic>> createPix(int courseId) async {
+    try {
+      final response = await _dio.post('/courses/$courseId/pix');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+      throw Exception(response.data['message'] ?? 'Erro ao gerar PIX');
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Status do pagamento: 'pending', 'approved', 'rejected'...
+  Future<String> getPaymentStatus(int paymentId) async {
+    try {
+      final response = await _dio.get('/payments/$paymentId/status');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return (response.data['data']?['status'] as String?) ?? 'pending';
+      }
+      return 'pending';
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   // ==================== VÍDEOS ====================
 
   /// Obter detalhes do vídeo

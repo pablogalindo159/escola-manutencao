@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../providers/course_provider.dart';
 import '../video/video_player_screen.dart';
+import '../../services/api_service.dart';
+import '../payment/pix_payment_screen.dart';
 
 class CourseDetailScreen extends StatefulWidget {
   final int courseId;
@@ -55,6 +57,32 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   /// pro app pra confirmar nada.
   Future<void> _checkoutCourse() async {
     setState(() => _isProcessingPayment = true);
+
+    // Mesmo método configurado no admin do site.
+    // Se não conseguir consultar, usa o Checkout Pro (fluxo que já existia).
+    String method = 'checkout_pro';
+    try {
+      method = await ApiService().getPaymentMethod();
+    } catch (_) {}
+    if (!mounted) return;
+
+    if (method == 'pix_transparente') {
+      setState(() => _isProcessingPayment = false);
+      final course = context.read<CourseProvider>().selectedCourse;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PixPaymentScreen(
+            courseId: widget.courseId,
+            courseTitle: course?.title ?? '',
+            price: course?.price ?? 0,
+          ),
+        ),
+      );
+      // Recarrega o curso: se o pagamento aprovou, o botão vira "Já inscrito".
+      if (mounted) await _loadCourse();
+      return;
+    }
 
     final provider = context.read<CourseProvider>();
     final initPoint = await provider.checkoutCourse(widget.courseId);

@@ -4,7 +4,6 @@ import 'providers/auth_provider.dart';
 import 'providers/course_provider.dart';
 import 'providers/repair_provider.dart';
 import 'providers/community_provider.dart';
-import 'models/course_model.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
@@ -20,7 +19,6 @@ import 'screens/repairs/repair_photo_screen.dart';
 import 'screens/community/posts_screen.dart';
 import 'screens/community/post_detail_screen.dart';
 import 'screens/community/post_form_screen.dart';
-import 'screens/payment/payment_method_screen.dart';
 import 'screens/profile/profile_screen.dart';
 
 void main() {
@@ -132,10 +130,6 @@ class MyApp extends StatelessWidget {
           '/post-form': (context) {
             final courseId = ModalRoute.of(context)?.settings.arguments as int?;
             return PostFormScreen(courseId: courseId);
-          },
-          '/checkout-method': (context) {
-            final course = ModalRoute.of(context)!.settings.arguments as Course;
-            return PaymentMethodScreen(course: course);
           },
         },
       ),

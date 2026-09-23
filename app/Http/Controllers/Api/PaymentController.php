@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Payment;
 use App\Services\MercadoPagoService;
+use App\Traits\PaymentMethodsTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -18,6 +19,20 @@ use Illuminate\Support\Str;
  */
 class PaymentController extends Controller
 {
+    use PaymentMethodsTrait;
+
+    /**
+     * GET /api/payment-method — método escolhido no admin
+     * (pix_transparente ou checkout_pro), mesma config do site.
+     */
+    public function method(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => ['method' => $this->getPaymentMethod()],
+        ]);
+    }
+
     /**
      * Verificações comuns antes de cobrar. Retorna resposta de erro ou null.
      */

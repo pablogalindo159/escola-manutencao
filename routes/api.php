@@ -87,6 +87,7 @@ Route::middleware('auth:api')->group(function () {
     });
 
     // ==================== PAGAMENTOS ====================
+    Route::get('/payment-method', [PaymentController::class, 'method']);
     Route::get('/payments/{payment}/status', [PaymentController::class, 'status'])->whereNumber('payment');
 
     // ==================== VÍDEOS ====================

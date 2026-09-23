@@ -2,7 +2,7 @@ name: escola_manutencao
 description: "App de cursos de manutenção - Escola da Manutenção"
 publish_to: 'none'
 
-version: 1.0.25+25
+version: 1.0.26+26
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -40,6 +40,9 @@ dependencies:
 
   # Abrir links externos (YouTube Live, etc)
   url_launcher: ^6.2.0
+
+  # QR Code do PIX (plano B quando o Mercado Pago não manda a imagem)
+  qr_flutter: ^4.1.0
 
   # Data & Hora
   intl: ^0.19.0
