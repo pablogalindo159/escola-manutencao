@@ -91,6 +91,55 @@
             </div>
         </form>
 
+        <!-- ==================== CERTIFICADO DO CURSO ==================== -->
+        <div class="mt-10 bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-bold text-gray-900 mb-1">🎓 Certificado deste curso</h2>
+            <p class="text-sm text-gray-500 mb-4">
+                Tudo opcional. O que não for enviado usa o certificado padrão.
+                Fundo: JPG/PNG deitado (proporção A4, ex. 2480×1754 px), até 2 MB, com o centro claro
+                para os textos. Logo e assinatura: PNG com fundo transparente, até 1 MB.
+            </p>
+
+            <form method="POST" action="{{ route('admin.courses.certificate.update', $course) }}" enctype="multipart/form-data" class="space-y-5">
+                @csrf
+
+                @foreach ([
+                    'certificate_background' => 'Imagem de fundo',
+                    'certificate_logo' => 'Logo — substitui o texto "Escola da Manutenção"',
+                    'certificate_signature' => 'Assinatura do instrutor',
+                ] as $field => $label)
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ $label }}</label>
+                        @if ($course->{$field})
+                            <p class="text-sm text-green-700 mb-1">✅ Imagem enviada</p>
+                            <label class="inline-flex items-center gap-2 text-sm text-red-600 mb-2">
+                                <input type="checkbox" name="remove_{{ $field }}" value="1"> Remover
+                            </label>
+                        @else
+                            <p class="text-sm text-gray-500 mb-1">Usando o padrão</p>
+                        @endif
+                        <input type="file" name="{{ $field }}" accept="image/png,image/jpeg"
+                               class="block w-full text-sm text-gray-700 file:mr-3 file:px-4 file:py-2 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700">
+                    </div>
+                @endforeach
+
+                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" name="certificate_hide_frame" value="1" @checked($course->certificate_hide_frame)>
+                    Esconder a moldura azul (use quando o fundo já tiver borda)
+                </label>
+
+                <div class="flex flex-wrap justify-end gap-3 pt-4 border-t">
+                    <a href="{{ route('admin.courses.certificate.preview', $course) }}" target="_blank"
+                       class="px-4 py-2 border border-blue-600 text-blue-600 font-semibold rounded-lg hover:bg-blue-50">
+                        Ver prévia do certificado
+                    </a>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700">
+                        Salvar certificado
+                    </button>
+                </div>
+            </form>
+        </div>
+
         <!-- ==================== MATRICULAR ALUNO ==================== -->
         <div class="mt-10 bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-bold text-gray-900 mb-1">👤 Matricular Aluno Manualmente</h2>

@@ -116,6 +116,9 @@ Route::middleware(['auth', 'admin.web'])->group(function () {
     Route::get('/admin/cursos/{course}/editar', [AdminDashboardController::class, 'editCourse'])->name('admin.courses.edit');
     Route::put('/admin/cursos/{course}', [AdminDashboardController::class, 'updateCourse'])->name('admin.courses.update');
     Route::post('/admin/cursos/{course}/matricular', [AdminDashboardController::class, 'enrollStudent'])->name('admin.courses.enroll');
+    // Arte do certificado por curso (fundo, logo, assinatura) + prévia
+    Route::post('/admin/cursos/{course}/certificado', [AdminDashboardController::class, 'updateCertificate'])->name('admin.courses.certificate.update');
+    Route::get('/admin/cursos/{course}/certificado/previa', [CertificatePageController::class, 'preview'])->name('admin.courses.certificate.preview');
 
     Route::prefix('admin/cursos/{course}/videos')->name('admin.videos.')->group(function () {
         Route::post('/detectar', [AdminVideoController::class, 'detectMetadata'])->name('detect');

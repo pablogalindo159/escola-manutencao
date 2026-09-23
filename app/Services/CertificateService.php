@@ -6,6 +6,7 @@ use App\Models\Certificate;
 use App\Models\Course;
 use App\Models\User;
 use App\Models\UserProgress;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 
 /**
@@ -67,6 +68,32 @@ class CertificateService
         $certificate->update(['qr_code_data' => $certificate->getVerificationUrl()]);
 
         return $certificate;
+    }
+
+    /**
+     * Arte do certificado do curso (fundo, logo, assinatura) como data URI,
+     * pronta para o dompdf. Campo vazio ou arquivo ausente = padrão.
+     */
+    public function assetsFor(Course $course): array
+    {
+        $toDataUri = function (?string $path): ?string {
+            if (!$path) {
+                return null;
+            }
+            $disk = Storage::disk('local');
+            if (!$disk->exists($path)) {
+                return null;
+            }
+            $mime = $disk->mimeType($path) ?: 'image/png';
+            return 'data:' . $mime . ';base64,' . base64_encode($disk->get($path));
+        };
+
+        return [
+            'background' => $toDataUri($course->certificate_background),
+            'logo' => $toDataUri($course->certificate_logo),
+            'signature' => $toDataUri($course->certificate_signature),
+            'hideFrame' => (bool) $course->certificate_hide_frame,
+        ];
     }
 
     /**

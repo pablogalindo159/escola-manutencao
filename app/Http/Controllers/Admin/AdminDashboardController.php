@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\Repair;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class AdminDashboardController extends Controller
@@ -181,6 +182,46 @@ class AdminDashboardController extends Controller
 
         return redirect()->route('admin.courses.edit', $course)
             ->with('success', 'Curso atualizado com sucesso!');
+    }
+
+    /**
+     * Arte do certificado do curso: fundo, logo e assinatura (opcionais).
+     * Arquivos ficam no disco privado; sem nada = certificado padrão.
+     */
+    public function updateCertificate(Course $course)
+    {
+        request()->validate([
+            'certificate_background' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'certificate_logo' => 'nullable|image|mimes:jpg,jpeg,png|max:1024',
+            'certificate_signature' => 'nullable|image|mimes:jpg,jpeg,png|max:1024',
+        ], [
+            'certificate_background.max' => 'O fundo deve ter no máximo 2 MB.',
+            'certificate_logo.max' => 'O logo deve ter no máximo 1 MB.',
+            'certificate_signature.max' => 'A assinatura deve ter no máximo 1 MB.',
+            '*.mimes' => 'Envie imagens JPG ou PNG.',
+            '*.image' => 'Envie imagens JPG ou PNG.',
+        ]);
+
+        $disk = Storage::disk('local');
+
+        foreach (['certificate_background', 'certificate_logo', 'certificate_signature'] as $field) {
+            $remove = request()->boolean('remove_' . $field);
+            $upload = request()->file($field);
+
+            if (($remove || $upload) && $course->{$field}) {
+                $disk->delete($course->{$field});
+                $course->{$field} = null;
+            }
+            if ($upload) {
+                $course->{$field} = $upload->store("certificates/{$course->id}", 'local');
+            }
+        }
+
+        $course->certificate_hide_frame = request()->boolean('certificate_hide_frame');
+        $course->save();
+
+        return redirect()->route('admin.courses.edit', $course)
+            ->with('success', 'Certificado do curso atualizado!');
     }
 
     /**

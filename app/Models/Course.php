@@ -23,6 +23,10 @@ class Course extends Model
         'rating',
         'status',
         'featured',
+        'certificate_background',
+        'certificate_logo',
+        'certificate_signature',
+        'certificate_hide_frame',
     ];
 
     protected $casts = [
@@ -30,6 +34,7 @@ class Course extends Model
         'rating' => 'float',
         'duration_minutes' => 'integer',
         'featured' => 'boolean',
+        'certificate_hide_frame' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
