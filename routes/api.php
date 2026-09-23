@@ -126,6 +126,7 @@ Route::middleware('auth:api')->group(function () {
 
     // ==================== COMUNIDADE - POSTS ====================
     Route::prefix('posts')->group(function () {
+        Route::get('/', [PostController::class, 'index']);
         Route::get('/course/{courseId}', [PostController::class, 'indexByCourse']);
         Route::get('/{post}', [PostController::class, 'show']);
         Route::post('/', [PostController::class, 'store']);

@@ -18,6 +18,13 @@ class _PostFormScreenState extends State<PostFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
+  int? _selectedCourseId;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCourseId = widget.courseId;
+  }
 
   @override
   void dispose() {
@@ -33,7 +40,7 @@ class _PostFormScreenState extends State<PostFormScreen> {
     final success = await provider.createPost(
       title: _titleController.text.trim(),
       content: _contentController.text.trim(),
-      courseId: widget.courseId,
+      courseId: _selectedCourseId,
     );
 
     if (success && mounted) {
@@ -46,8 +53,11 @@ class _PostFormScreenState extends State<PostFormScreen> {
       Navigator.of(context).pop(true);
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erro ao criar post'),
+        SnackBar(
+          content: Text(
+            (provider.errorMessage ?? 'Erro ao criar post')
+                .replaceFirst('Exception: ', ''),
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -69,6 +79,49 @@ class _PostFormScreenState extends State<PostFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Curso (igual ao site: obrigatório escolher quando não vem definido)
+              if (widget.courseId == null) ...[
+                const Text(
+                  'Curso',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Builder(builder: (context) {
+                  final courses = context.watch<CommunityProvider>().courses;
+                  if (courses.isEmpty) {
+                    return Text(
+                      'Você precisa estar inscrito em um curso para publicar.',
+                      style: TextStyle(color: Colors.red[700]),
+                    );
+                  }
+                  return DropdownButtonFormField<int>(
+                    initialValue: _selectedCourseId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Selecione o curso',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: courses
+                        .map(
+                          (c) => DropdownMenuItem<int>(
+                            value: (c['id'] as num).toInt(),
+                            child: Text(
+                              (c['title'] ?? '').toString(),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    validator: (v) => v == null ? 'Selecione o curso' : null,
+                    onChanged: (v) => setState(() => _selectedCourseId = v),
+                  );
+                }),
+                const SizedBox(height: 20),
+              ],
               // Title
               const Text(
                 'Título',

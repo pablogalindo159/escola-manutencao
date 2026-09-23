@@ -12,6 +12,9 @@ class CommunityProvider with ChangeNotifier {
   int _currentPage = 1;
   int _totalPages = 1;
   int? _selectedCourseId;
+  int? _filterCourseId;
+  // Cursos do aluno (id, title) - usados no filtro e no formulário de post
+  List<Map<String, dynamic>> _courses = [];
 
   // Getters
   List<Post> get posts => _posts;
@@ -20,24 +23,36 @@ class CommunityProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   int get currentPage => _currentPage;
   int get totalPages => _totalPages;
+  int? get filterCourseId => _filterCourseId;
+  List<Map<String, dynamic>> get courses => _courses;
 
   /// Carregar posts do curso
   Future<void> loadPosts({
     int? courseId,
+    int? filterCourseId,
     int page = 1,
     int perPage = 20,
   }) async {
     _isLoading = true;
     _errorMessage = null;
     _selectedCourseId = courseId;
+    _filterCourseId = filterCourseId;
     notifyListeners();
 
     try {
       final response = await _apiService.getPosts(
         courseId: courseId,
+        filterCourseId: filterCourseId,
         page: page,
         perPage: perPage,
       );
+
+      final courses = response['courses'];
+      if (courses is List) {
+        _courses = courses
+            .map((c) => Map<String, dynamic>.from(c as Map))
+            .toList();
+      }
 
       _posts = (response['data'] as List<dynamic>)
           .map((p) => Post.fromJson(p as Map<String, dynamic>))

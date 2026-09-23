@@ -11,6 +11,56 @@ use Illuminate\Http\Request;
 class PostController extends Controller
 {
     /**
+     * Posts de todos os cursos do aluno (igual à comunidade do site).
+     * GET /api/posts?course_id=opcional
+     * Também devolve "courses" (id, title) para o filtro e o formulário do app.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $courses = $user->courses()
+                ->where('courses.status', '!=', 'archived')
+                ->get(['courses.id', 'courses.title']);
+            $courseIds = $courses->pluck('id');
+
+            $perPage = (int) $request->query('per_page', 20);
+            $selectedCourseId = $request->query('course_id');
+
+            $query = Post::active()
+                ->whereIn('course_id', $courseIds)
+                ->with('author:id,name,avatar_url')
+                ->with('comments')
+                ->orderBy('is_pinned', 'desc')
+                ->orderBy('created_at', 'desc');
+
+            if ($selectedCourseId) {
+                $query->where('course_id', $selectedCourseId);
+            }
+
+            $posts = $query->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $posts->items(),
+                'pagination' => [
+                    'total' => $posts->total(),
+                    'per_page' => $posts->perPage(),
+                    'current_page' => $posts->currentPage(),
+                    'last_page' => $posts->lastPage(),
+                ],
+                'courses' => $courses->map(fn ($c) => ['id' => $c->id, 'title' => $c->title])->values(),
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao listar posts',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Listar posts de um curso
      * GET /api/posts/course/{courseId}
      */

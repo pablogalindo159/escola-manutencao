@@ -550,20 +550,21 @@ class ApiService {
   // ==================== COMUNIDADE (POSTS) ====================
 
   /// Listar posts de um curso
+  /// Sem courseId: posts de todos os cursos do aluno (igual ao site),
+  /// com filtro opcional por filterCourseId. Com courseId: posts do curso.
   Future<Map<String, dynamic>> getPosts({
     int? courseId,
+    int? filterCourseId,
     int page = 1,
     int perPage = 20,
   }) async {
-    if (courseId == null) {
-      throw Exception('É necessário informar o curso para listar os posts');
-    }
     try {
       final response = await _dio.get(
-        '/posts/course/$courseId',
+        courseId == null ? '/posts' : '/posts/course/$courseId',
         queryParameters: {
           'page': page,
           'per_page': perPage,
+          if (filterCourseId != null) 'course_id': filterCourseId,
         },
       );
 
