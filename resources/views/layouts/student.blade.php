@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Minha Área') - {{ config('app.name', 'Escola da Manutenção') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    @include('partials.pwa-head')
 </head>
 <body class="antialiased bg-gray-50">
     <nav class="bg-white border-b sticky top-0 z-30">
@@ -92,5 +93,6 @@
             </a>
         </div>
     </nav>
+    @include('partials.pwa-ios-banner')
 </body>
 </html>

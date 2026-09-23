@@ -6,8 +6,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'Escola da Manutenção') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    @include('partials.pwa-head')
 </head>
 <body class="antialiased">
     @yield('content')
+    @include('partials.pwa-ios-banner')
 </body>
 </html>

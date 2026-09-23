@@ -6,6 +6,7 @@
     <title>Admin - {{ config('app.name', 'Escola da Manutenção') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    @include('partials.pwa-head')
 </head>
 <body class="antialiased bg-gray-100">
     @yield('content')
