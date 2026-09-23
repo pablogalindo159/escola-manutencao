@@ -10,6 +10,26 @@
     <p class="text-gray-600">{{ $course->description }}</p>
 </div>
 
+@if ($completion['total'] > 0)
+<div class="bg-white rounded-xl shadow-sm p-5 mb-6">
+    <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-medium text-gray-700">Seu progresso</span>
+        <span class="text-sm text-gray-600">{{ $completion['completed'] }} de {{ $completion['total'] }} aulas concluídas</span>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-2.5">
+        <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ $completion['percentage'] }}%"></div>
+    </div>
+    @if ($certificate)
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 bg-green-50 border border-green-200 rounded-lg p-4">
+            <span class="text-green-800 font-medium">🎓 Parabéns! Você concluiu o curso.</span>
+            <a href="{{ $certificateUrl }}" target="_blank" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700">Baixar certificado</a>
+        </div>
+    @else
+        <p class="mt-3 text-xs text-gray-500">O certificado é liberado ao concluir 100% das aulas.</p>
+    @endif
+</div>
+@endif
+
 <h2 class="text-lg font-bold text-gray-900 mb-3">Aulas</h2>
 
 <div class="bg-white rounded-xl shadow overflow-hidden divide-y divide-gray-200">

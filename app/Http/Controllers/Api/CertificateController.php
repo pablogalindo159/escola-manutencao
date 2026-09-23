@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Certificate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Models\Course;
+use App\Services\CertificateService;
 
 class CertificateController extends Controller
 {
@@ -89,6 +91,31 @@ class CertificateController extends Controller
     }
 
     /**
+     * Progresso + certificado do aluno em um curso (usado pelo app).
+     * Emite o certificado na hora se o aluno acabou de chegar a 100%.
+     * GET /api/courses/{course}/certificate
+     */
+    public function forCourse(Request $request, Course $course): JsonResponse
+    {
+        $service = app(CertificateService::class);
+        $user = $request->user();
+        $certificate = $service->issueIfEligible($user, $course);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'completion' => $service->completion($user, $course),
+                'certificate' => $certificate ? [
+                    'id' => $certificate->id,
+                    'certificate_number' => $certificate->certificate_number,
+                    'issued_at' => $certificate->issued_at,
+                    'url' => $service->signedUrl($certificate),
+                ] : null,
+            ],
+        ]);
+    }
+
+    /**
      * Gerar certificado após conclusão do curso
      * POST /api/certificates
      */
@@ -101,45 +128,17 @@ class CertificateController extends Controller
                 'course_id' => 'required|exists:courses,id',
             ]);
 
-            // Verificar se usuário completou o curso (80%+)
-            $progress = $user->progress()
-                ->where('course_id', $validated['course_id'])
-                ->avg('progress_percentage') ?? 0;
+            // Regra única (site e app): 100% das aulas publicadas concluídas
+            $course = Course::findOrFail($validated['course_id']);
+            $service = app(CertificateService::class);
+            $certificate = $service->issueIfEligible($user, $course);
 
-            if ($progress < 80) {
+            if (!$certificate) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Você precisa completar 80% do curso para gerar o certificado',
+                    'message' => 'Conclua 100% das aulas do curso para liberar o certificado',
                 ], 400);
             }
-
-            // Verificar se já existe certificado
-            $existing = Certificate::where('user_id', $user->id)
-                ->where('course_id', $validated['course_id'])
-                ->first();
-
-            if ($existing) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Você já tem um certificado para este curso',
-                ], 400);
-            }
-
-            // Criar certificado
-            $certificate = Certificate::create([
-                'user_id' => $user->id,
-                'course_id' => $validated['course_id'],
-                'certificate_number' => Certificate::generateCertificateNumber(),
-                'issued_at' => now(),
-                'completion_percentage' => $progress,
-                'qr_code_data' => '',
-            ]);
-
-            // Gerar QR Code
-            $qrData = $certificate->generateQRCode();
-            $certificate->update(['qr_code_data' => $qrData]);
-
-            // TODO: Gerar PDF do certificado
 
             return response()->json([
                 'success' => true,
@@ -148,7 +147,7 @@ class CertificateController extends Controller
                     'id' => $certificate->id,
                     'certificate_number' => $certificate->certificate_number,
                     'issued_at' => $certificate->issued_at,
-                    'download_url' => $certificate->downloadUrl(),
+                    'download_url' => $service->signedUrl($certificate),
                 ],
             ], 201);
         } catch (\Exception $e) {
@@ -214,13 +213,7 @@ class CertificateController extends Controller
                 ], 403);
             }
 
-            // TODO: Gerar PDF e retornar
-            // Por enquanto, retornar mensagem
-            return response()->json([
-                'success' => true,
-                'message' => 'PDF será gerado em breve',
-                'certificate_number' => $certificate->certificate_number,
-            ], 200);
+            return redirect()->away(app(CertificateService::class)->signedUrl($certificate));
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

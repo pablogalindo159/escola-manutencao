@@ -184,6 +184,20 @@ class VideoProgressProvider with ChangeNotifier {
     }
   }
 
+  /// Marcar aula como concluída (botão, igual ao site)
+  Future<bool> markCompleted(int videoId) async {
+    try {
+      await _apiService.completeVideo(videoId);
+      _videoProgress[videoId] = 100.0;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// Carregar progresso do curso
   Future<void> loadCourseProgress(int courseId) async {
     _isLoading = true;

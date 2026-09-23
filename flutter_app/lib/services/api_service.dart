@@ -327,6 +327,29 @@ class ApiService {
     }
   }
 
+  /// Marcar aula como concluída (igual ao botão do site).
+  Future<void> completeVideo(int videoId) async {
+    try {
+      await _dio.post('/videos/$videoId/complete');
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Progresso (aulas concluídas/total) e certificado do curso.
+  /// O servidor emite o certificado na hora em que o aluno chega a 100%.
+  Future<Map<String, dynamic>> getCourseCertificate(int courseId) async {
+    try {
+      final response = await _dio.get('/courses/$courseId/certificate');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+      throw Exception(response.data['message'] ?? 'Erro ao carregar certificado');
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   /// Status do pagamento: 'pending', 'approved', 'rejected'...
   Future<String> getPaymentStatus(int paymentId) async {
     try {

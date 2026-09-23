@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/course_provider.dart';
 import '../../models/course_model.dart';
 import 'secure_video_player.dart';
@@ -366,6 +367,50 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+
+              // Concluir aula (igual ao site) - conta para o certificado
+              Builder(builder: (context) {
+                final progress = context.watch<VideoProgressProvider>();
+                if (progress.isVideoCompleted(video.id)) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green[700], size: 18),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Aula concluída',
+                          style: TextStyle(color: Colors.green[800], fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return OutlinedButton.icon(
+                  onPressed: () async {
+                    final ok = await context
+                        .read<VideoProgressProvider>()
+                        .markCompleted(video.id);
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(
+                        content: Text(ok
+                            ? 'Aula marcada como concluída!'
+                            : 'Não foi possível marcar a aula. Tente novamente.'),
+                        backgroundColor: ok ? Colors.green : Colors.red,
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.check),
+                  label: const Text('Marcar como concluída'),
+                );
+              }),
               const SizedBox(height: 20),
 
               // Description
@@ -394,8 +439,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               // Material
               if (video.materialUrl != null)
                 ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Download material
+                  onPressed: () async {
+                    final uri = Uri.tryParse(video.materialUrl!);
+                    if (uri == null) return;
+                    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    if (!ok && mounted) {
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        const SnackBar(content: Text('Não foi possível abrir o material.')),
+                      );
+                    }
                   },
                   icon: const Icon(Icons.download),
                   label: const Text('Baixar Material'),

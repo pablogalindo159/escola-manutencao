@@ -21,6 +21,9 @@ class CourseDetailScreen extends StatefulWidget {
 class _CourseDetailScreenState extends State<CourseDetailScreen> {
   bool _isProcessingPayment = false;
 
+  // Progresso (aulas concluídas) e certificado - liberado com 100%
+  Map<String, dynamic>? _certInfo;
+
   @override
   void initState() {
     super.initState();
@@ -33,7 +36,90 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     if (provider.selectedCourse?.isSubscribed == true && mounted) {
       // Carrega progresso só se o usuário já está inscrito (endpoint exige)
       await context.read<VideoProgressProvider>().loadCourseProgress(widget.courseId);
+      await _loadCertificate();
     }
+  }
+
+  Future<void> _loadCertificate() async {
+    try {
+      final info = await ApiService().getCourseCertificate(widget.courseId);
+      if (mounted) setState(() => _certInfo = info);
+    } catch (_) {
+      // Sem certificado/progresso: o card simplesmente não aparece.
+    }
+  }
+
+  Future<void> _openCertificate(String url) async {
+    final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível abrir o certificado.')),
+      );
+    }
+  }
+
+  Widget _buildCertificateCard() {
+    final info = _certInfo;
+    if (info == null) return const SizedBox.shrink();
+    final completion = Map<String, dynamic>.from(info['completion'] as Map);
+    final total = (completion['total'] as num?)?.toInt() ?? 0;
+    if (total == 0) return const SizedBox.shrink();
+    final done = (completion['completed'] as num?)?.toInt() ?? 0;
+    final certificate = info['certificate'] as Map?;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: certificate != null ? Colors.green[50] : Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: certificate != null ? Colors.green[200]! : Colors.grey[300]!,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$done de $total aulas concluídas',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: done / total,
+              minHeight: 8,
+              backgroundColor: Colors.grey[300],
+              color: certificate != null ? Colors.green : const Color(0xFF0066FF),
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (certificate != null) ...[
+            const Text('🎓 Parabéns! Você concluiu o curso.'),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: () => _openCertificate(certificate['url'] as String),
+                icon: const Icon(Icons.workspace_premium),
+                label: const Text('Baixar certificado'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[700],
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+          ] else
+            Text(
+              'O certificado é liberado ao concluir 100% das aulas.',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _subscribeToCourse() async {
@@ -368,14 +454,17 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                               borderRadius: BorderRadius.circular(8),
                               onTap: () {
                                 if (course.isSubscribed == true) {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => VideoPlayerScreen(
-                                        courseId: course.id,
-                                        videoId: video.id,
-                                      ),
-                                    ),
-                                  );
+                                  Navigator.of(context)
+                                      .push(
+                                        MaterialPageRoute(
+                                          builder: (_) => VideoPlayerScreen(
+                                            courseId: course.id,
+                                            videoId: video.id,
+                                          ),
+                                        ),
+                                      )
+                                      // Volta da aula: atualiza progresso e certificado
+                                      .then((_) => _loadCourse());
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
@@ -520,6 +609,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
+
+                      // Progresso e certificado (só para inscritos)
+                      if (course.isSubscribed == true) _buildCertificateCard(),
 
                       // Subscribe / Buy Button
                       SizedBox(

@@ -13,6 +13,7 @@ use App\Http\Controllers\Student\VideoController as StudentVideoController;
 use App\Http\Controllers\Student\CommunityController as StudentCommunityController;
 use App\Http\Controllers\Student\ProfileController as StudentProfileController;
 use App\Http\Controllers\Student\PaymentController as StudentPaymentController;
+use App\Http\Controllers\CertificatePageController;
 use App\Models\Course;
 use App\Models\LiveStream;
 
@@ -70,6 +71,12 @@ Route::get('/cursos/{course}', [CourseController::class, 'show'])->name('courses
 Route::get('/live-streams/{liveStream}', function (LiveStream $liveStream) {
     return view('live-streams.show', ['stream' => $liveStream]);
 })->name('live-streams.show');
+
+// Certificados: PDF por link assinado/temporário (site e app) e verificação pública
+Route::get('/certificados/{certificate}/pdf', [CertificatePageController::class, 'pdf'])
+    ->middleware('signed')->name('certificates.pdf');
+Route::get('/certificado/verificar/{number}', [CertificatePageController::class, 'verify'])
+    ->name('certificates.verify');
 
 Route::middleware('auth')->prefix('minha-area')->name('student.')->group(function () {
     Route::get('/', [StudentDashboardController::class, 'index'])->name('dashboard');

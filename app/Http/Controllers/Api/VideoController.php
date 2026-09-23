@@ -92,6 +92,42 @@ class VideoController extends Controller
     }
 
     /**
+     * Marcar aula como concluída (igual ao botão do site).
+     * POST /api/videos/{video}/complete
+     */
+    public function complete(Request $request, Video $video): JsonResponse
+    {
+        $user = auth('api')->user();
+
+        $isSubscribed = $user->courses()
+            ->where('course_id', $video->course_id)
+            ->exists();
+
+        if (!$isSubscribed) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Você não está inscrito neste curso',
+            ], 403);
+        }
+
+        $progress = UserProgress::firstOrNew([
+            'user_id' => $user->id,
+            'course_id' => $video->course_id,
+            'video_id' => $video->id,
+        ]);
+        $progress->watched_seconds = max((int) $progress->watched_seconds, (int) $video->duration_seconds);
+        $progress->progress_percentage = 100;
+        $progress->is_completed = true;
+        $progress->completed_at = $progress->completed_at ?? now();
+        $progress->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Aula marcada como concluída!',
+        ]);
+    }
+
+    /**
      * Atualizar progresso do vídeo
      * POST /api/videos/{id}/progress
      */
@@ -132,14 +168,22 @@ class VideoController extends Controller
 
             // Atualizar progresso
             $watchedSeconds = $validated['watched_seconds'];
-            $percentage = ($watchedSeconds / $video->duration_seconds) * 100;
-            $isCompleted = $percentage >= 80; // 80% = completo
+            // Aula sem duração cadastrada (0s) não tem como calcular %:
+            // conclui pelo botão "Marcar como concluída".
+            $percentage = $video->duration_seconds > 0
+                ? min(100, ($watchedSeconds / $video->duration_seconds) * 100)
+                : 0;
+            $reachedEnd = $percentage >= 80; // 80% assistido = concluída
+
+            // Aula concluída continua concluída ao reassistir do início
+            // (senão o aluno "perde" o 100% e o certificado).
+            $isCompleted = $progress->is_completed || $reachedEnd;
 
             $progress->update([
                 'watched_seconds' => $watchedSeconds,
-                'progress_percentage' => min(100, $percentage),
+                'progress_percentage' => max((float) $progress->progress_percentage, $percentage),
                 'is_completed' => $isCompleted,
-                'completed_at' => $isCompleted ? now() : null,
+                'completed_at' => $isCompleted ? ($progress->completed_at ?? now()) : null,
             ]);
 
             return response()->json([

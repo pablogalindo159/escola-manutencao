@@ -79,6 +79,7 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/{course}/subscribe', [CourseController::class, 'subscribe']);
         Route::post('/{course}/checkout', [PaymentController::class, 'checkout']);
         Route::post('/{course}/pix', [PaymentController::class, 'pix']);
+        Route::get('/{course}/certificate', [CertificateController::class, 'forCourse']);
 
         // ADMIN
         Route::post('/', [CourseController::class, 'store'])->middleware('admin');
@@ -94,6 +95,7 @@ Route::middleware('auth:api')->group(function () {
     Route::prefix('videos')->group(function () {
         Route::get('/{video}', [VideoController::class, 'show']);
         Route::post('/{video}/progress', [VideoController::class, 'updateProgress']);
+        Route::post('/{video}/complete', [VideoController::class, 'complete']);
         
         // ADMIN
         Route::post('/', [VideoController::class, 'store'])->middleware('admin');

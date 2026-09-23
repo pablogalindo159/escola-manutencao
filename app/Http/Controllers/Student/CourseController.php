@@ -58,11 +58,19 @@ class CourseController extends Controller
             ->pluck('video_id')
             ->toArray();
 
+        // Certificado: liberado ao concluir 100% das aulas publicadas
+        $certificateService = app(\App\Services\CertificateService::class);
+        $completion = $certificateService->completion($user, $course);
+        $certificate = $certificateService->issueIfEligible($user, $course);
+
         return view('student.course-show', [
             'course' => $course,
             'videos' => $videos,
             'completedVideoIds' => $completedVideoIds,
             'isSubscribed' => $isSubscribed,
+            'completion' => $completion,
+            'certificate' => $certificate,
+            'certificateUrl' => $certificate ? $certificateService->signedUrl($certificate) : null,
         ]);
     }
 

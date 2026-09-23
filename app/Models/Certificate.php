@@ -64,14 +64,12 @@ class Certificate extends Model
     public function generateQRCode()
     {
         // QR Code will contain certificate number and verification URL
-        $data = "https://escoladamanutencao.com.br/verify/{$this->certificate_number}";
-        
-        return $data;
+        return $this->getVerificationUrl();
     }
 
     public function getVerificationUrl()
     {
-        return url("/verify/{$this->certificate_number}");
+        return route('certificates.verify', ['number' => $this->certificate_number]);
     }
 
     public function isValid()
