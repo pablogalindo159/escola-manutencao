@@ -22,12 +22,17 @@ class SecureVideoPlayer extends StatefulWidget {
   /// vídeos do YouTube (tocam fora do app, sem como rastrear).
   final void Function(int watchedSeconds)? onProgress;
 
+  /// Chamado quando o backend informa (com token válido) que o vídeo é
+  /// do YouTube, pra tela pai trocar pelo player do YouTube embutido.
+  final void Function(String youtubeId)? onYoutubeDetected;
+
   const SecureVideoPlayer({
     Key? key,
     required this.videoId,
     required this.videoTitle,
     this.initialPositionSeconds = 0,
     this.onProgress,
+    this.onYoutubeDetected,
   }) : super(key: key);
 
   @override
@@ -88,6 +93,9 @@ class _SecureVideoPlayerState extends State<SecureVideoPlayer> {
         setState(() {
           _isLoading = false;
         });
+        if (_youtubeId != null) {
+          widget.onYoutubeDetected?.call(_youtubeId!);
+        }
         return;
       }
 

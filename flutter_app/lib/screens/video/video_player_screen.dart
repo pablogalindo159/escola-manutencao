@@ -31,6 +31,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   YoutubePlayerController? _youtubeController;
   StreamSubscription<Duration>? _youtubePositionSub;
 
+  // A API do curso não envia video_url (proteção). O ID do YouTube vem
+  // do /stream-url (só pra quem tem acesso) via SecureVideoPlayer.
+  String? _streamYoutubeId;
+  String? get _effectiveYoutubeId => _video?.youtubeId ?? _streamYoutubeId;
+
   @override
   void initState() {
     super.initState();
@@ -178,7 +183,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       );
     }
 
-    final isYoutube = _video?.youtubeId != null;
+    final isYoutube = _effectiveYoutubeId != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -233,7 +238,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   Widget _buildVideoArea() {
-    final youtubeId = _video?.youtubeId;
+    final youtubeId = _effectiveYoutubeId;
 
     if (youtubeId != null) {
       return YoutubePlayer(
@@ -259,6 +264,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           videoId: widget.videoId.toString(),
           videoTitle: _video?.title ?? 'Aula',
           initialPositionSeconds: watched,
+          onYoutubeDetected: (id) {
+            if (mounted && _streamYoutubeId != id) {
+              setState(() => _streamYoutubeId = id);
+            }
+          },
           onProgress: (seconds) {
             context.read<VideoProgressProvider>().updateProgress(
                   videoId: widget.videoId,
